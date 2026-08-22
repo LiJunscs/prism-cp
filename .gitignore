@@ -1,0 +1,8 @@
+.vscode/
+__pycache__/
+.codex/
+*.sh
+ppt_output/
+reference/
+agent_run/
+figures/

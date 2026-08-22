@@ -1,0 +1,93 @@
+# Merged benchmark results
+# Source files: 18
+# GPUs: 8
+# CP size: 8
+# Hidden size: 4096
+# Num attention heads: 32
+# Num query groups (KV heads): 8
+# GDN key heads: 32
+# GDN value heads: 32
+# GDN key head dim: 128
+# GDN value head dim: 128
+# GDN conv kernel dim: 4
+# Batch size: 1
+# Warmup iters: 10
+# Timed iters: 30
+# GPU peak TFLOP/s: 989.0
+# dtype: bf16
+#
+# Source files:
+#   bench_attention_seq1048576_cp8_20260618_125413.csv | module=attention seq=1048576 date=2026-06-18 12:54:13
+#   bench_attention_seq131072_cp8_20260618_123503.csv | module=attention seq=131072 date=2026-06-18 12:35:03
+#   bench_attention_seq16384_cp8_20260618_122925.csv | module=attention seq=16384 date=2026-06-18 12:29:25
+#   bench_attention_seq262144_cp8_20260618_123734.csv | module=attention seq=262144 date=2026-06-18 12:37:34
+#   bench_attention_seq32768_cp8_20260618_123111.csv | module=attention seq=32768 date=2026-06-18 12:31:11
+#   bench_attention_seq4096_cp8_20260618_122602.csv | module=attention seq=4096 date=2026-06-18 12:26:02
+#   bench_attention_seq524288_cp8_20260618_124202.csv | module=attention seq=524288 date=2026-06-18 12:42:02
+#   bench_attention_seq65536_cp8_20260618_123302.csv | module=attention seq=65536 date=2026-06-18 12:33:02
+#   bench_attention_seq8192_cp8_20260618_122743.csv | module=attention seq=8192 date=2026-06-18 12:27:43
+#   bench_gdn_seq1048576_cp8_20260618_125543.csv | module=gdn seq=1048576 date=2026-06-18 12:55:43
+#   bench_gdn_seq131072_cp8_20260618_123605.csv | module=gdn seq=131072 date=2026-06-18 12:36:05
+#   bench_gdn_seq16384_cp8_20260618_123019.csv | module=gdn seq=16384 date=2026-06-18 12:30:19
+#   bench_gdn_seq262144_cp8_20260618_123838.csv | module=gdn seq=262144 date=2026-06-18 12:38:38
+#   bench_gdn_seq32768_cp8_20260618_123210.csv | module=gdn seq=32768 date=2026-06-18 12:32:10
+#   bench_gdn_seq4096_cp8_20260618_122657.csv | module=gdn seq=4096 date=2026-06-18 12:26:57
+#   bench_gdn_seq524288_cp8_20260618_124314.csv | module=gdn seq=524288 date=2026-06-18 12:43:14
+#   bench_gdn_seq65536_cp8_20260618_123402.csv | module=gdn seq=65536 date=2026-06-18 12:34:02
+#   bench_gdn_seq8192_cp8_20260618_122836.csv | module=gdn seq=8192 date=2026-06-18 12:28:36
+#
+model,phase,seq_length,cp_size,time_ms,tflops_per_gpu,mfu,peak_mem_gib
+attention,fwd,4096,8,4.76,12.62,0.0128,0.16
+attention,fwd,8192,8,5.02,30.77,0.0311,0.22
+attention,fwd,16384,8,4.96,90.02,0.0910,0.32
+attention,fwd,32768,8,4.88,295.82,0.2991,0.53
+attention,fwd,65536,8,9.25,549.76,0.5559,0.96
+attention,fwd,131072,8,33.67,563.23,0.5695,1.81
+attention,fwd,262144,8,124.83,585.72,0.5922,3.51
+attention,fwd,524288,8,491.77,583.55,0.5900,6.90
+attention,fwd,1048576,8,1963.58,578.99,0.5854,13.70
+attention,bwd,4096,8,6.17,19.49,0.0197,0.26
+attention,bwd,8192,8,4.96,62.33,0.0630,0.31
+attention,bwd,16384,8,5.22,171.12,0.1730,0.43
+attention,bwd,32768,8,8.65,333.65,0.3374,0.67
+attention,bwd,65536,8,24.30,418.57,0.4232,1.16
+attention,bwd,131072,8,81.17,467.33,0.4725,2.14
+attention,bwd,262144,8,301.65,484.78,0.4902,4.08
+attention,bwd,524288,8,1173.44,489.11,0.4946,7.98
+attention,bwd,1048576,8,4694.42,484.36,0.4897,15.77
+attention,fwd+bwd,4096,8,9.59,18.80,0.0190,0.26
+attention,fwd+bwd,8192,8,9.71,47.77,0.0483,0.31
+attention,fwd+bwd,16384,8,9.74,137.59,0.1391,0.43
+attention,fwd+bwd,32768,8,12.82,337.68,0.3414,0.67
+attention,fwd+bwd,65536,8,32.81,465.02,0.4702,1.16
+attention,fwd+bwd,131072,8,114.93,495.09,0.5006,2.14
+attention,fwd+bwd,262144,8,429.38,510.86,0.5165,4.08
+attention,fwd+bwd,524288,8,1673.45,514.46,0.5202,7.98
+attention,fwd+bwd,1048576,8,6639.62,513.69,0.5194,15.77
+gated_delta_net,fwd,4096,8,3.20,27.59,0.0279,0.26
+gated_delta_net,fwd,8192,8,3.21,55.10,0.0557,0.33
+gated_delta_net,fwd,16384,8,2.88,122.64,0.1240,0.48
+gated_delta_net,fwd,32768,8,4.16,170.09,0.1720,0.77
+gated_delta_net,fwd,65536,8,7.65,184.91,0.1870,1.35
+gated_delta_net,fwd,131072,8,14.83,190.74,0.1929,2.51
+gated_delta_net,fwd,262144,8,29.34,192.73,0.1949,4.83
+gated_delta_net,fwd,524288,8,58.95,191.87,0.1940,9.47
+gated_delta_net,fwd,1048576,8,119.29,189.63,0.1917,18.75
+gated_delta_net,bwd,4096,8,4.73,37.40,0.0378,0.51
+gated_delta_net,bwd,8192,8,4.76,74.20,0.0750,0.56
+gated_delta_net,bwd,16384,8,5.77,122.59,0.1240,0.78
+gated_delta_net,bwd,32768,8,8.15,173.53,0.1755,1.21
+gated_delta_net,bwd,65536,8,14.92,189.52,0.1916,2.07
+gated_delta_net,bwd,131072,8,27.24,207.60,0.2099,3.80
+gated_delta_net,bwd,262144,8,55.22,204.83,0.2071,7.25
+gated_delta_net,bwd,524288,8,108.65,208.21,0.2105,14.15
+gated_delta_net,bwd,1048576,8,215.50,209.94,0.2123,27.96
+gated_delta_net,fwd+bwd,4096,8,8.35,31.74,0.0321,0.51
+gated_delta_net,fwd+bwd,8192,8,7.79,68.05,0.0688,0.56
+gated_delta_net,fwd+bwd,16384,8,8.95,118.44,0.1198,0.78
+gated_delta_net,fwd+bwd,32768,8,12.29,172.56,0.1745,1.21
+gated_delta_net,fwd+bwd,65536,8,21.44,197.82,0.2000,2.07
+gated_delta_net,fwd+bwd,131072,8,41.84,202.73,0.2050,3.80
+gated_delta_net,fwd+bwd,262144,8,85.39,198.68,0.2009,7.25
+gated_delta_net,fwd+bwd,524288,8,170.55,198.96,0.2012,14.15
+gated_delta_net,fwd+bwd,1048576,8,343.56,197.54,0.1997,27.96

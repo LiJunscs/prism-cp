@@ -1,0 +1,81 @@
+# Merged benchmark results
+# Source files: 15
+# GPUs: 1
+# CP size: 1
+# Hidden size: 4096
+# Num attention heads: 32
+# Num query groups (KV heads): 8
+# GDN key heads: 32
+# GDN value heads: 32
+# GDN key head dim: 128
+# GDN value head dim: 128
+# GDN conv kernel dim: 4
+# Batch size: 1
+# Warmup iters: 10
+# Timed iters: 30
+# GPU peak TFLOP/s: 989.0
+# dtype: bf16
+#
+# Source files:
+#   bench_attention_seq131072_cp1_20260618_150822.csv | module=attention seq=131072 date=2026-06-18 15:08:22
+#   bench_attention_seq16384_cp1_20260618_150215.csv | module=attention seq=16384 date=2026-06-18 15:02:15
+#   bench_attention_seq262144_cp1_20260618_151454.csv | module=attention seq=262144 date=2026-06-18 15:14:54
+#   bench_attention_seq32768_cp1_20260618_150347.csv | module=attention seq=32768 date=2026-06-18 15:03:47
+#   bench_attention_seq4096_cp1_20260618_145924.csv | module=attention seq=4096 date=2026-06-18 14:59:24
+#   bench_attention_seq524288_cp1_20260618_155251.csv | module=attention seq=524288 date=2026-06-18 15:52:51
+#   bench_attention_seq65536_cp1_20260618_150534.csv | module=attention seq=65536 date=2026-06-18 15:05:34
+#   bench_attention_seq8192_cp1_20260618_150048.csv | module=attention seq=8192 date=2026-06-18 15:00:48
+#   bench_gdn_seq131072_cp1_20260618_150922.csv | module=gdn seq=131072 date=2026-06-18 15:09:22
+#   bench_gdn_seq16384_cp1_20260618_150302.csv | module=gdn seq=16384 date=2026-06-18 15:03:02
+#   bench_gdn_seq262144_cp1_20260618_151610.csv | module=gdn seq=262144 date=2026-06-18 15:16:10
+#   bench_gdn_seq32768_cp1_20260618_150435.csv | module=gdn seq=32768 date=2026-06-18 15:04:35
+#   bench_gdn_seq4096_cp1_20260618_150008.csv | module=gdn seq=4096 date=2026-06-18 15:00:08
+#   bench_gdn_seq65536_cp1_20260618_150626.csv | module=gdn seq=65536 date=2026-06-18 15:06:26
+#   bench_gdn_seq8192_cp1_20260618_150134.csv | module=gdn seq=8192 date=2026-06-18 15:01:34
+#
+model,phase,seq_length,cp_size,time_ms,tflops_per_gpu,mfu,peak_mem_gib
+attention,fwd,4096,1,0.91,529.98,0.5359,0.27
+attention,fwd,8192,1,1.93,641.38,0.6485,0.42
+attention,fwd,16384,1,5.62,636.16,0.6432,0.74
+attention,fwd,32768,1,17.25,669.15,0.6766,1.36
+attention,fwd,65536,1,62.24,653.58,0.6608,2.62
+attention,fwd,131072,1,227.63,666.58,0.6740,5.13
+attention,fwd,262144,1,875.65,668.01,0.6754,10.14
+attention,fwd,524288,1,3421.34,671.02,0.6785,20.17
+attention,bwd,4096,1,2.06,466.96,0.4722,0.53
+attention,bwd,8192,1,5.01,493.48,0.4990,0.88
+attention,bwd,16384,1,14.66,487.57,0.4930,1.57
+attention,bwd,32768,1,47.34,487.70,0.4931,2.95
+attention,bwd,65536,1,166.23,489.47,0.4949,5.71
+attention,bwd,131072,1,605.61,501.09,0.5067,11.24
+attention,bwd,262144,1,2333.95,501.25,0.5068,22.28
+attention,bwd,524288,1,9130.47,502.88,0.5085,44.38
+attention,fwd+bwd,4096,1,3.18,454.09,0.4591,0.53
+attention,fwd+bwd,8192,1,6.89,538.25,0.5442,0.88
+attention,fwd+bwd,16384,1,19.79,541.83,0.5479,1.57
+attention,fwd+bwd,32768,1,63.62,544.37,0.5504,2.95
+attention,fwd+bwd,65536,1,224.87,542.74,0.5488,5.71
+attention,fwd+bwd,131072,1,833.08,546.40,0.5525,11.24
+attention,fwd+bwd,262144,1,3211.94,546.34,0.5524,22.28
+attention,fwd+bwd,524288,1,12553.34,548.65,0.5547,44.38
+gated_delta_net,fwd,4096,1,1.73,408.75,0.4133,0.77
+gated_delta_net,fwd,8192,1,3.13,451.20,0.4562,1.35
+gated_delta_net,fwd,16384,1,6.15,460.14,0.4653,2.51
+gated_delta_net,fwd,32768,1,12.22,462.62,0.4678,4.83
+gated_delta_net,fwd,65536,1,25.24,448.06,0.4530,9.47
+gated_delta_net,fwd,131072,1,50.89,444.50,0.4494,18.75
+gated_delta_net,fwd,262144,1,103.17,438.54,0.4434,37.31
+gated_delta_net,bwd,4096,1,4.23,334.18,0.3379,1.21
+gated_delta_net,bwd,8192,1,7.25,389.91,0.3943,2.07
+gated_delta_net,bwd,16384,1,13.94,405.56,0.4101,3.80
+gated_delta_net,bwd,32768,1,28.64,394.88,0.3993,7.25
+gated_delta_net,bwd,65536,1,57.80,391.39,0.3957,14.15
+gated_delta_net,bwd,131072,1,115.57,391.47,0.3958,27.96
+gated_delta_net,bwd,262144,1,230.16,393.14,0.3975,55.58
+gated_delta_net,fwd+bwd,4096,1,6.15,344.91,0.3487,1.21
+gated_delta_net,fwd+bwd,8192,1,10.27,412.87,0.4175,2.07
+gated_delta_net,fwd+bwd,16384,1,19.96,424.96,0.4297,3.80
+gated_delta_net,fwd+bwd,32768,1,40.97,414.07,0.4187,7.25
+gated_delta_net,fwd+bwd,65536,1,83.72,405.29,0.4098,14.15
+gated_delta_net,fwd+bwd,131072,1,169.90,399.43,0.4039,27.96
+gated_delta_net,fwd+bwd,262144,1,335.84,404.15,0.4086,55.58
