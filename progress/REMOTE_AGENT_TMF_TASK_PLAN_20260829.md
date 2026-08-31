@@ -1,7 +1,13 @@
 # 知识库主题：TMF Bundle 与 Spatial-Repeat 修复版远程服务器执行计划（审查批准版）
 
 > **状态：Correctness 在当前验证边界内通过，性能阶段开放（2026-08-31）**  
-> contiguous 修复后 CUDA 700 未再出现；repeat transition algebra 三类路径精确通过，fixed/mixed 的 output、input-gradient 与 reduced parameter-gradient 均满足冻结的 BF16 范数门控。same-layout replay、FP32 shadow reduction 与 grad-buffer audit 已完成根因排查并从日常回归 harness 删除。T3 性能冒烟是当前下一项。
+> contiguous 修复后 CUDA 700 未再出现；repeat transition algebra 三类路径精确通过，fixed/mixed 的 output、input-gradient 与 reduced parameter-gradient 均满足冻结的 BF16 范数门控。same-layout replay、FP32 shadow reduction 与 grad-buffer audit 已完成根因排查并从日常回归 harness 删除。下一项改为新计划 A0–A1 的版本冻结与桥接复测。
+
+> **2026-08-31 profiling 审计更新：** 本文件尚未执行的旧 T3–T8 已被
+> `REMOTE_AGENT_TMF_1F1B_AND_MODEL_PLAN_20260831.md` 取代。2026-08-22 性能数据
+> 可作历史 regression band，但因 commit、repeat/grad 路径和 profiler 语义已变化，
+> 不再直接执行旧矩阵并与其混合。下一项是新计划 A0–A1 的当前版本桥接复测；
+> 同时由 code agent 完成 A2 的 GPipe-vs-1F1B reference harness。
 
 > 日期：2026-08-23  
 > 本地审查日期：2026-08-29  
@@ -81,8 +87,8 @@ parameter gradient:
 | T2a | 完成 | 全量 transition/legacy/bundle/repeat 已覆盖 |
 | T2b | 完成 | repeat transition-local 语义与 GA=1 结构性风险已排除 |
 | T2c | 关闭 | same-layout controls 已量化非确定性基线；后续独立复跑作为回归，不再阻塞性能 |
-| T3 | 下一项 | 先执行 Config A 的 4096-token bundle/repeat 冒烟 |
-| T4–T8 | 待执行 | 冒烟通过后按原顺序进行长序列、逐模块 profiling 与汇总 |
+| T3 | 已取代 | 不再直接执行；转入 20260831 新计划 A0–A1 |
+| T4–T8 | 已取代 | 由当前版本桥接、1F1B profiling 和事件模型任务替代 |
 
 该结论只覆盖当前 benchmark stack 的 forward/backward parity、CP4↔CP1 目标路径和已运行的 BF16 环境；不覆盖 optimizer update、长程 loss trajectory、checkpoint/recompute、pipeline parallelism 或其他未测试 CP 组合。
 
@@ -911,13 +917,14 @@ logical / unique tokens/s
 
 ## 10. 给远程 agent 的最终指令
 
-当前从 T3 开始按：
+2026-08-31 更新后，本文件原 T3–T8 不再执行。新的执行顺序见
+`REMOTE_AGENT_TMF_1F1B_AND_MODEL_PLAN_20260831.md`：
 
 ```text
-T3 -> T4 -> T5 -> T6 -> T7 -> T8
+A0 -> A1 -> A3 -> A4 -> A5 -> A6 -> A7 -> A8 -> A9
 ```
 
-顺序执行。T0–T2 已按本文件 0.1 节关闭；若目标代码发生变化，则从 T0 重新开始。
+其中 A2 可与 A1 并行。T0–T2 已按本文件 0.1 节关闭；若目标代码发生变化，则从新计划 A0 重新开始。
 
 核心原则：
 
