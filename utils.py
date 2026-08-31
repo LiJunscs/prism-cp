@@ -274,7 +274,6 @@ _ATTN_BACKEND_ENV = {
 # is under correctness investigation. Set this environment variable to 0 to
 # exercise the general nested-CP path instead.
 DEBUG_CP = os.getenv("MEGATRON_BENCH_DEBUG_CP_TABLES", "1") == "1"
-TRACE_CP = os.getenv("MEGATRON_BENCH_TRACE_CP", "0") == "1"
 DIRECTION_2_4 = {
     "send": [[0, 1], [2, 3], [0, 1], [2, 3], [4, 5], [6, 7], [4, 5], [6, 7]],
     "recv": [[0, 2], [0, 2], [1, 3], [1, 3], [4, 6], [4, 6], [5, 7], [5, 7]]
@@ -559,22 +558,257 @@ class _GatherSequenceForCPTransition(torch.autograd.Function):
         ), None, None, None
 
 
-def transmition_cp_size(seq, src_cp, dst_cp, cache):
+def _repeat_scatter_sequence_p2p(
+    seq_local,
+    src_cp_size,
+    dst_cp_size,
+    cp_group_cache,
+    *,
+    average,
+):
+    """P2P CP expansion for repeat mode.
+
+    ``src_cp_size < dst_cp_size`` means DP contracts. Repeat mode keeps the
+    local batch unchanged, so source DP replicas inside one destination CP
+    group contain duplicate logical samples. Each source rank splits its
+    Megatron-zigzag sequence shard exactly as the normal scatter does; every
+    destination rank receives the corresponding shard from all duplicate
+    source DP replicas and either sums or averages them.
+    """
+    if dst_cp_size <= src_cp_size or dst_cp_size % src_cp_size:
+        raise ValueError(
+            f"Repeat scatter requires nested CP expansion, got "
+            f"{src_cp_size}->{dst_cp_size}."
+        )
+
+    # Autograd may supply an expanded, zero-stride gradient (for example from
+    # tensor.sum()).  Materialize it before reshaping or handing derived
+    # buffers to NCCL P2P operations.
+    seq_local = seq_local.contiguous()
+    seq_len, batch, hidden = seq_local.shape
+    multiple = dst_cp_size // src_cp_size
+    if seq_len % (2 * multiple):
+        raise ValueError(
+            f"Local sequence length {seq_len} is not divisible by "
+            f"2*repeat_ratio={2 * multiple} for CP{src_cp_size}->CP{dst_cp_size}."
+        )
+
+    src_ranks = cp_group_cache[src_cp_size][1]
+    dst_ranks = cp_group_cache[dst_cp_size][1]
+    cur_global = dist.get_rank()
+    src_local_rank = src_ranks.index(cur_global)
+    dst_local_rank = dst_ranks.index(cur_global)
+
+    seq_view = seq_local.view(
+        2 * multiple,
+        seq_len // (2 * multiple),
+        batch,
+        hidden,
+    )
+    send_chunks = []
+    send_targets = []
+    for piece in range(multiple):
+        chunk = torch.cat(
+            [seq_view[piece], seq_view[2 * multiple - piece - 1]],
+            dim=0,
+        ).contiguous()
+        dst_global = dst_ranks[src_local_rank * multiple + piece]
+        send_chunks.append(chunk)
+        send_targets.append(dst_global)
+
+    ops = []
+    recv_chunks = [None] * multiple
+    for replica in range(multiple):
+        chunk = send_chunks[replica]
+        dst_global = send_targets[replica]
+        if dst_global != cur_global:
+            ops.append(dist.P2POp(dist.isend, chunk, dst_global))
+
+        src_global = dst_ranks[
+            replica * src_cp_size + (dst_local_rank // multiple)
+        ]
+        if src_global != cur_global:
+            received = torch.empty_like(chunk)
+            ops.append(dist.P2POp(dist.irecv, received, src_global))
+        else:
+            self_piece = send_targets.index(cur_global)
+            received = send_chunks[self_piece]
+        recv_chunks[replica] = received
+
+    if ops:
+        for work in dist.batch_isend_irecv(ops):
+            work.wait()
+
+    reduced = recv_chunks[0].clone()
+    for received in recv_chunks[1:]:
+        reduced.add_(received)
+    if average and multiple > 1:
+        reduced.div_(multiple)
+    return reduced
+
+
+def _repeat_gather_sequence_p2p(
+    seq_local,
+    src_cp_size,
+    dst_cp_size,
+    cp_group_cache,
+    *,
+    scale=1.0,
+):
+    """P2P CP contraction for repeat mode.
+
+    ``src_cp_size > dst_cp_size`` expands DP. Instead of splitting the local
+    batch as the normal redistribution gather does, the same batch is sent to
+    every new DP replica. Received sequence shards are reassembled in the exact
+    Megatron zigzag order expected by ``dst_cp_size``.
+    """
+    if src_cp_size <= dst_cp_size or src_cp_size % dst_cp_size:
+        raise ValueError(
+            f"Repeat gather requires nested CP contraction, got "
+            f"{src_cp_size}->{dst_cp_size}."
+        )
+
+    # This helper sends the input tensor itself.  NCCL P2P requires a stable,
+    # dense buffer; backward gradients from reductions can be expanded views
+    # with zero strides, which otherwise lead to an illegal memory access.
+    seq_local = seq_local.contiguous()
+    seq_len, batch, hidden = seq_local.shape
+    multiple = src_cp_size // dst_cp_size
+    if seq_len % 2:
+        raise ValueError(
+            f"Local sequence length {seq_len} must be even for repeat gather."
+        )
+
+    src_ranks = cp_group_cache[src_cp_size][1]
+    cur_global = dist.get_rank()
+    src_local_rank = src_ranks.index(cur_global)
+    send_column = src_local_rank // multiple
+    recv_column = src_local_rank % dst_cp_size
+
+    send_targets = [
+        src_ranks[replica * dst_cp_size + send_column]
+        for replica in range(multiple)
+    ]
+
+    ops = []
+    recv_chunks = [None] * multiple
+    for replica, dst_global in enumerate(send_targets):
+        if dst_global != cur_global:
+            ops.append(dist.P2POp(dist.isend, seq_local, dst_global))
+
+        src_global = src_ranks[recv_column * multiple + replica]
+        if src_global != cur_global:
+            received = torch.empty_like(seq_local)
+            ops.append(dist.P2POp(dist.irecv, received, src_global))
+        else:
+            received = seq_local
+        recv_chunks[replica] = received
+    if ops:
+        for work in dist.batch_isend_irecv(ops):
+            work.wait()
+
+    half = seq_len // 2
+    out = seq_local.new_empty(
+        2 * multiple,
+        half,
+        batch,
+        hidden,
+    )
+    for piece, received in enumerate(recv_chunks):
+        received = received.view(2, half, batch, hidden)
+        out[piece].copy_(received[0])
+        out[2 * multiple - piece - 1].copy_(received[1])
+    out = out.view(seq_len * multiple, batch, hidden)
+    if scale != 1.0:
+        out.mul_(scale)
+    return out
+
+
+class _RepeatGatherSequenceForCPTransition(torch.autograd.Function):
+    """Replicate one logical DP sample when CP contracts and DP expands."""
+
+    @staticmethod
+    def forward(ctx, seq_local, src_cp_size, dst_cp_size, cp_group_cache):
+        ctx.src_cp_size = src_cp_size
+        ctx.dst_cp_size = dst_cp_size
+        ctx.cp_group_cache = cp_group_cache
+        return _repeat_gather_sequence_p2p(
+            seq_local,
+            src_cp_size,
+            dst_cp_size,
+            cp_group_cache,
+        )
+
+    @staticmethod
+    def backward(ctx, grad):
+        return _repeat_scatter_sequence_p2p(
+            grad,
+            ctx.dst_cp_size,
+            ctx.src_cp_size,
+            ctx.cp_group_cache,
+            average=False,
+        ), None, None, None
+
+
+class _RepeatScatterSequenceForCPTransition(torch.autograd.Function):
+    """Average duplicate DP replicas when CP expands and DP contracts."""
+
+    @staticmethod
+    def forward(ctx, seq_local, src_cp_size, dst_cp_size, cp_group_cache):
+        ctx.src_cp_size = src_cp_size
+        ctx.dst_cp_size = dst_cp_size
+        ctx.cp_group_cache = cp_group_cache
+        ctx.multiple = dst_cp_size // src_cp_size
+        return _repeat_scatter_sequence_p2p(
+            seq_local,
+            src_cp_size,
+            dst_cp_size,
+            cp_group_cache,
+            average=True,
+        )
+
+    @staticmethod
+    def backward(ctx, grad):
+        return _repeat_gather_sequence_p2p(
+            grad,
+            ctx.dst_cp_size,
+            ctx.src_cp_size,
+            ctx.cp_group_cache,
+            scale=1.0 / ctx.multiple,
+        ), None, None, None
+
+
+def transmition_cp_size(seq, src_cp, dst_cp, cache, strategy="redistribute"):
+    """Change CP layout using redistribution or spatial-repeat semantics."""
+    if src_cp == dst_cp:
+        return seq
+
+    large_cp, small_cp = max(src_cp, dst_cp), min(src_cp, dst_cp)
+    if large_cp % small_cp:
+        raise ValueError(
+            f"CP transition {src_cp}->{dst_cp} requires nested CP sizes."
+        )
+
+    if strategy == "repeat":
+        if dst_cp > src_cp:
+            return _RepeatScatterSequenceForCPTransition.apply(
+                seq, src_cp, dst_cp, cache
+            )
+        return _RepeatGatherSequenceForCPTransition.apply(
+            seq, src_cp, dst_cp, cache
+        )
+
+    if strategy != "redistribute":
+        raise ValueError(
+            f"Unknown CP transition strategy {strategy!r}; expected "
+            "'redistribute' or 'repeat'."
+        )
+
     if DEBUG_CP:
         set_transition_direction(src_cp, dst_cp)
-        rank = dist.get_rank()
-        if TRACE_CP:
-            print(
-                f"[DP-CP debug][rank {rank}] transition={src_cp}->{dst_cp} "
-                f"input_shape={tuple(seq.shape)} send={DIRECTION['send'][rank]} "
-                f"recv={DIRECTION['recv'][rank]}",
-                flush=True,
-            )
     if dst_cp > src_cp:
         return _ScatterSequenceForCPTransition.apply(seq, src_cp, dst_cp, cache)
-    elif dst_cp < src_cp:
-        return _GatherSequenceForCPTransition.apply(seq, src_cp, dst_cp, cache)
-    return seq
+    return _GatherSequenceForCPTransition.apply(seq, src_cp, dst_cp, cache)
 
 
 # ---------- Global FLOPs formulas ----------
@@ -784,7 +1018,7 @@ def timed_fwd_bwd(fn, x, warmup, iters, zero_grad=None, post_backward=None):
 
 
 def set_transition_direction(src_cp, dst_cp):
-    global DEBUG_CP, DIRECTION_2_4, DIRECTION_2_8, DIRECTION_4_8, DIRECTION
+    global DEBUG_CP, DIRECTION_2_4, DIRECTION_2_8, DIRECTION_4_8, DIRECTION_4_1, DIRECTION_8_1, DIRECTION
     if (src_cp == 2 and dst_cp == 4) or (src_cp == 4 and dst_cp == 2):
         DIRECTION = DIRECTION_2_4
     elif (src_cp == 2 and dst_cp == 8) or (src_cp == 8 and dst_cp == 2):
@@ -793,5 +1027,7 @@ def set_transition_direction(src_cp, dst_cp):
         DIRECTION = DIRECTION_4_8
     elif (src_cp == 4 and dst_cp == 1) or (src_cp == 1 and dst_cp == 4):
         DIRECTION = DIRECTION_4_1
+    elif (src_cp == 8 and dst_cp == 1) or (src_cp == 1 and dst_cp == 8):
+        DIRECTION = DIRECTION_8_1
     else:
         raise ValueError(f"Unsupported CP transition: {src_cp} -> {dst_cp}")

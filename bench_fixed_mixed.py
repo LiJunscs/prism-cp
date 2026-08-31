@@ -66,7 +66,8 @@ def add_fixed_mixed_args(parser):
         help=(
             "Use optimizer-step temporal execution instead of the legacy single "
             "spatial batch. 'bundle' uses distinct accumulated microbatches; "
-            "'repeat' duplicates one microbatch per source DP replica."
+            "'repeat' keeps distinct accumulated microbatches but replicates a "
+            "logical microbatch spatially only when CP contraction expands DP."
         ),
     )
     return parser
@@ -556,10 +557,34 @@ def temporal_gradient_accumulation_steps(args, first_cp, world_size):
     return args.global_batch_size // logical_global_batch
 
 
-def validate_temporal_plan(layer_plan, args, world_size):
-    """Validate a plan using optimizer-step, rather than spatial-batch, legality."""
+def repeat_logical_cp(args, layer_plan):
+    """Return the non-replicated CP domain used to define repeat-mode samples."""
+    candidates = [cp_size for _, cp_size in layer_plan]
+    candidates.extend([args.attn_cp_size, args.gdn_cp_size])
+    if args.fixed_cp_size is not None:
+        candidates.append(args.fixed_cp_size)
+    logical_cp = max(candidates)
+    world_size = dist.get_world_size()
+    if world_size % logical_cp:
+        raise ValueError(
+            f"repeat logical CP={logical_cp} must divide world_size={world_size}."
+        )
+    for _, cp_size in layer_plan:
+        if logical_cp % cp_size:
+            raise ValueError(
+                f"repeat logical CP={logical_cp} must be divisible by every plan CP; "
+                f"got CP={cp_size}."
+            )
+    return logical_cp
+
+
+def validate_temporal_plan(layer_plan, args, world_size, strategy="bundle"):
+    """Validate optimizer-step legality for bundle or spatial-repeat execution."""
     if args.global_batch_size < 1:
         raise ValueError("global_batch_size must be positive.")
+    if strategy not in ("bundle", "repeat"):
+        raise ValueError(f"Unknown temporal strategy {strategy!r}.")
+
     for _, cp_size in layer_plan:
         if cp_size < 1 or world_size % cp_size:
             raise ValueError(
@@ -570,7 +595,7 @@ def validate_temporal_plan(layer_plan, args, world_size):
                 f"Invalid seq_length={args.seq_length} for CP={cp_size}."
             )
         dp_size = world_size // cp_size
-        if args.global_batch_size % dp_size:
+        if strategy == "bundle" and args.global_batch_size % dp_size:
             raise ValueError(
                 f"optimizer-step global_batch_size={args.global_batch_size} must "
                 f"be divisible by DP={dp_size} for CP={cp_size}."
@@ -585,9 +610,20 @@ def validate_temporal_plan(layer_plan, args, world_size):
                 f"CP transition {src_cp}->{dst_cp} requires nested CP sizes."
             )
 
-    return temporal_gradient_accumulation_steps(
-        args, layer_plan[0][1], world_size
-    )
+    if strategy == "bundle":
+        return temporal_gradient_accumulation_steps(
+            args, layer_plan[0][1], world_size
+        )
+
+    logical_cp = repeat_logical_cp(args, layer_plan)
+    logical_dp = world_size // logical_cp
+    logical_microbatch = args.micro_batch_size * logical_dp
+    if args.global_batch_size % logical_microbatch:
+        raise ValueError(
+            f"repeat global_batch_size={args.global_batch_size} must be divisible by "
+            f"micro_batch_size={args.micro_batch_size} * logical_dp={logical_dp}."
+        )
+    return args.global_batch_size // logical_microbatch
 
 
 def _minimum_temporal_width(logical_global_batch, dp_size):
@@ -673,7 +709,7 @@ def temporal_remesh_payloads(
 def make_temporal_stack(
     layers, cp_cache, world_size, logical_global_batch
 ):
-    """Execute complete CP-homogeneous blocks over temporal payloads."""
+    """Execute bundle-mode CP blocks over temporally foldable payloads."""
     blocks = []
     for _, cp_size, layer_fn in layers:
         if not blocks or blocks[-1][0] != cp_size:
@@ -707,19 +743,59 @@ def make_temporal_stack(
     return forward
 
 
-def make_temporal_inputs(
-    args, first_cp, cp_cache, world_size, accumulation_steps, strategy
-):
-    """Create distinct accumulated microbatches or replicas of one microbatch."""
-    first_dp = world_size // first_cp
-    dp_rank = dist.get_rank() // first_cp
-    inputs = []
-    base = None
-    for accumulation_index in range(accumulation_steps):
-        if strategy == "repeat" and base is not None:
-            inputs.append((base.detach().clone().requires_grad_(True), 1))
-            continue
+def make_repeat_stack(layers, cp_cache):
+    """Execute each logical microbatch independently with spatial repeat remeshing."""
+    def forward(payloads):
+        outputs = []
+        for tensor, width in payloads:
+            if width != 1:
+                raise ValueError(
+                    f"repeat mode expects width=1 logical microbatches, got {width}."
+                )
+            current_cp = layers[0][1]
+            for _, cp_size, layer_fn in layers:
+                if cp_size != current_cp:
+                    tensor = transmition_cp_size(
+                        tensor,
+                        current_cp,
+                        cp_size,
+                        cp_cache,
+                        strategy="repeat",
+                    )
+                    current_cp = cp_size
+                tensor = layer_fn(tensor)
+            outputs.append((tensor, width))
+        return outputs
 
+    return forward
+
+
+def make_temporal_inputs(
+    args,
+    first_cp,
+    cp_cache,
+    world_size,
+    accumulation_steps,
+    strategy,
+    logical_cp=None,
+):
+    """Create optimizer-step inputs for bundle or spatial-repeat execution."""
+    if strategy not in ("bundle", "repeat"):
+        raise ValueError(f"Unknown temporal input strategy {strategy!r}.")
+
+    if strategy == "repeat":
+        if logical_cp is None:
+            raise ValueError("repeat inputs require logical_cp.")
+        if logical_cp % first_cp:
+            raise ValueError(
+                f"logical_cp={logical_cp} must be divisible by first_cp={first_cp}."
+            )
+        seed_dp_rank = dist.get_rank() // logical_cp
+    else:
+        seed_dp_rank = dist.get_rank() // first_cp
+
+    inputs = []
+    for accumulation_index in range(accumulation_steps):
         x_full = torch.empty(
             args.seq_length,
             args.micro_batch_size,
@@ -727,12 +803,11 @@ def make_temporal_inputs(
             device="cuda",
             dtype=torch.bfloat16,
         )
-        sample_index = 0 if strategy == "repeat" else accumulation_index
         torch.cuda.manual_seed(
             args.layer_seed
             + 1
-            + dp_rank * accumulation_steps
-            + sample_index
+            + seed_dp_rank * accumulation_steps
+            + accumulation_index
         )
         if dist.get_rank(cp_cache[first_cp][0]) == 0:
             x_full.normal_()
@@ -747,17 +822,15 @@ def make_temporal_inputs(
             else x_full
         )
         x = x.detach().requires_grad_(True)
-        if base is None:
-            base = x
         inputs.append((x, 1))
     return inputs
 
 
-def _temporal_loss(outputs, accumulation_steps):
+def _temporal_loss(outputs, accumulation_steps, replication_factor=1):
     loss = outputs[0][0].sum()
     for tensor, _ in outputs[1:]:
         loss = loss + tensor.sum()
-    return loss / accumulation_steps
+    return loss / (accumulation_steps * replication_factor)
 
 
 def timed_temporal_fwd_bwd(
@@ -766,6 +839,7 @@ def timed_temporal_fwd_bwd(
     warmup,
     iters,
     accumulation_steps,
+    replication_factor=1,
     zero_grad=None,
     post_backward=None,
 ):
@@ -781,7 +855,9 @@ def timed_temporal_fwd_bwd(
     for _ in range(warmup):
         prepare_iteration()
         outputs = fn(inputs)
-        _temporal_loss(outputs, accumulation_steps).backward()
+        _temporal_loss(
+            outputs, accumulation_steps, replication_factor
+        ).backward()
         if post_backward is not None:
             post_backward()
     torch.cuda.synchronize()
@@ -793,7 +869,9 @@ def timed_temporal_fwd_bwd(
         end = torch.cuda.Event(enable_timing=True)
         start.record()
         outputs = fn(inputs)
-        _temporal_loss(outputs, accumulation_steps).backward()
+        _temporal_loss(
+            outputs, accumulation_steps, replication_factor
+        ).backward()
         if post_backward is not None:
             post_backward()
         end.record()
@@ -813,27 +891,29 @@ def bench_temporal_stack(
     accumulation_steps,
     strategy,
     grad_buffer,
+    logical_cp,
+    final_cp,
 ):
     """Measure the temporal prototype at optimizer-step granularity."""
     reset_memory_tracking()
+    replication_factor = (
+        logical_cp // final_cp if strategy == "repeat" else 1
+    )
     times = timed_temporal_fwd_bwd(
         fn,
         inputs,
         args.warmup,
         args.iters,
         accumulation_steps,
+        replication_factor=replication_factor,
         zero_grad=grad_buffer.zero_grad,
         post_backward=grad_buffer.all_reduce,
     )
     avg_both = statistics.mean(times)
-    executed_tokens = args.global_batch_size * args.seq_length
-    unique_batch = (
-        args.micro_batch_size * first_dp
-        if strategy == "repeat"
-        else args.global_batch_size
-    )
+    logical_tokens = args.global_batch_size * args.seq_length
+    unique_batch = args.global_batch_size
     unique_tokens = unique_batch * args.seq_length
-    executed_tokens_s = executed_tokens / (avg_both / 1000)
+    logical_tokens_s = logical_tokens / (avg_both / 1000)
     unique_tokens_s = unique_tokens / (avg_both / 1000)
     mem_both, mem_both_reserved = peak_memory_gib(world_size)
 
@@ -841,37 +921,38 @@ def bench_temporal_stack(
         semantic = (
             "distinct logical microbatches"
             if strategy == "bundle"
-            else "one microbatch repeated within each source DP replica"
+            else "distinct logical microbatches with transition-local spatial replication"
         )
         print(f"  {label}: {semantic}")
         print(
             f"  grad_accumulation_steps={accumulation_steps} | "
-            f"optimizer_global_batch={args.global_batch_size} | "
-            f"unique_global_batch={unique_batch}"
+            f"logical_global_batch={args.global_batch_size} | "
+            f"final_replication={replication_factor}"
         )
         print(
             f"  optimizer-step both={avg_both:.2f} ms "
             f"(std={statistics.pstdev(times):.2f}) | "
-            f"executed_tokens/s={executed_tokens_s:.0f} | "
+            f"logical_tokens/s={logical_tokens_s:.0f} | "
             f"unique_tokens/s={unique_tokens_s:.0f} | "
             f"alloc={mem_both:.2f} GiB"
         )
         if strategy == "repeat":
             print(
-                "  WARNING: repeat mode preserves the average gradient only for "
-                "deterministic duplicate samples; it reduces data diversity and "
-                "is not equivalent to a distinct-sample global batch."
+                "  repeat redundancy is layer-dependent; logical throughput counts "
+                "each optimizer sample once even when lower-CP blocks execute replicas."
             )
 
     return {
         "both": avg_both,
         "both_std": statistics.pstdev(times),
-        "executed_tokens_s": executed_tokens_s,
+        "executed_tokens_s": logical_tokens_s,
+        "logical_tokens_s": logical_tokens_s,
         "unique_tokens_s": unique_tokens_s,
         "mem_both": mem_both,
         "mem_both_reserved": mem_both_reserved,
         "accumulation_steps": accumulation_steps,
         "unique_global_batch": unique_batch,
+        "final_replication": replication_factor,
     }
 
 
@@ -880,12 +961,20 @@ def run_temporal_plan(
 ):
     """Build and measure one fixed/mixed temporal optimizer-step plan."""
     layer_plan = make_layer_plan(layer_types, args, mode)
-    accumulation_steps = validate_temporal_plan(layer_plan, args, world_size)
+    accumulation_steps = validate_temporal_plan(
+        layer_plan, args, world_size, strategy=strategy
+    )
     cp_sizes = [cp_size for _, cp_size in layer_plan]
     cp_cache = make_cp_group_cache(cp_sizes)
     first_cp = cp_sizes[0]
     first_dp = world_size // first_cp
-    logical_global_batch = args.micro_batch_size * first_dp
+    if strategy == "repeat":
+        logical_cp = repeat_logical_cp(args, layer_plan)
+        logical_dp = world_size // logical_cp
+        logical_global_batch = args.micro_batch_size * logical_dp
+    else:
+        logical_cp = first_cp
+        logical_global_batch = args.micro_batch_size * first_dp
 
     torch.manual_seed(args.layer_seed)
     torch.cuda.manual_seed(args.layer_seed)
@@ -899,10 +988,14 @@ def run_temporal_plan(
         world_size,
         accumulation_steps,
         strategy,
+        logical_cp=logical_cp,
     )
-    fn = make_temporal_stack(
-        layers, cp_cache, world_size, logical_global_batch
-    )
+    if strategy == "repeat":
+        fn = make_repeat_stack(layers, cp_cache)
+    else:
+        fn = make_temporal_stack(
+            layers, cp_cache, world_size, logical_global_batch
+        )
 
     schedule, layout_plan, transitions = describe_plan(layer_plan)
     label = f"temporal_{strategy}_{mode}"
@@ -910,7 +1003,8 @@ def run_temporal_plan(
         print(f"\n  {label}: schedule={schedule}")
         print(
             f"  layout_plan={layout_plan} | transitions={transitions} | "
-            f"first_dp={first_dp} | micro_batch_size={args.micro_batch_size}"
+            f"first_dp={first_dp} | logical_cp={logical_cp} | "
+            f"micro_batch_size={args.micro_batch_size}"
         )
 
     try:
@@ -925,6 +1019,8 @@ def run_temporal_plan(
             accumulation_steps,
             strategy,
             grad_buffer,
+            logical_cp,
+            cp_sizes[-1],
         )
     finally:
         grad_buffer.close()
