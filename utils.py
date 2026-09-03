@@ -6,9 +6,17 @@ import os
 import random
 import sys
 import warnings
+from datetime import timedelta
 
 import torch
 import torch.distributed as dist
+
+from transition_kernels import (
+    assemble_gather_recv,
+    join_scatter_recv,
+    pack_gather_send,
+    pack_scatter_send,
+)
 
 sys.path.insert(0, "/workspace/repos/Megatron-LM")
 warnings.filterwarnings("ignore", category=UserWarning)
@@ -312,15 +320,32 @@ os.environ["NVTE_DEBUG_LEVEL"] = "0"
 def setup_dist():
     if dist.is_initialized():
         return
+    device_count = torch.cuda.device_count()
+    if device_count < 1:
+        raise RuntimeError("NCCL setup requires at least one CUDA device.")
+    device_index = int(os.environ.get("LOCAL_RANK", os.environ.get("RANK", "0")))
+    device_index %= device_count
+    torch.cuda.set_device(device_index)
+    device = torch.device("cuda", device_index)
+    process_group_timeout = timedelta(minutes=1)
     if "RANK" in os.environ:
-        dist.init_process_group("nccl")
+        dist.init_process_group(
+            "nccl",
+            device_id=device,
+            timeout=process_group_timeout,
+        )
     else:
         os.environ.setdefault("MASTER_ADDR", "localhost")
         os.environ.setdefault("MASTER_PORT", "29500")
         os.environ.setdefault("RANK", "0")
         os.environ.setdefault("WORLD_SIZE", "1")
-        dist.init_process_group("nccl", rank=0, world_size=1)
-    torch.cuda.set_device(dist.get_rank() % torch.cuda.device_count())
+        dist.init_process_group(
+            "nccl",
+            rank=0,
+            world_size=1,
+            device_id=device,
+            timeout=process_group_timeout,
+        )
 
     from megatron.core.tensor_parallel.random import (
         initialize_rng_tracker,
@@ -427,135 +452,441 @@ def get_pretrain_batch_on_this_cp_rank(seq_len, batch_size, hidden_size, cp_grou
     return x_split 
 
 # ---------- CP transition helpers ----------
+def _scatter_sequence_redistribute(
+    seq_local,
+    src_cp_size,
+    dst_cp_size,
+    cp_group_cache,
+    *,
+    use_triton,
+):
+    """Synchronous CP expansion core shared by eager and async-adjoint paths."""
+    global DEBUG_CP, DIRECTION
+    multiple = dst_cp_size // src_cp_size
+
+    dst_ranks = cp_group_cache[dst_cp_size][1]
+    src_ranks = cp_group_cache[src_cp_size][1]
+    cur_rank = cp_group_cache[src_cp_size][0].rank()
+    cur_global = src_ranks[cur_rank]
+    dst_group_start = (cur_global // dst_cp_size) * dst_cp_size
+    dst_local_rank = cur_global - dst_group_start
+
+    send_chunks = pack_scatter_send(
+        seq_local,
+        multiple,
+        use_triton=use_triton,
+    )
+    send_targets = []
+    for i in range(multiple):
+        if DEBUG_CP:
+            dst_g = DIRECTION["send"][cur_global][i]
+        else:
+            dst_g = dst_ranks[cur_rank * multiple + i]
+        send_targets.append(dst_g)
+
+    recv_chunks = torch.empty_like(send_chunks)
+    ops = []
+    for i, (chunk, dst_g) in enumerate(zip(send_chunks, send_targets)):
+        if dst_g != cur_global:
+            ops.append(dist.P2POp(dist.isend, chunk, dst_g))
+
+        if DEBUG_CP:
+            src_g = DIRECTION["recv"][cur_global][i]
+        else:
+            src_g = dst_ranks[i * src_cp_size + (dst_local_rank // multiple)]
+        if src_g != cur_global:
+            ops.append(dist.P2POp(dist.irecv, recv_chunks[i], src_g))
+        else:
+            self_send_idx = send_targets.index(cur_global)
+            recv_chunks[i].copy_(send_chunks[self_send_idx])
+
+    if ops:
+        for w in dist.batch_isend_irecv(ops):
+            w.wait()
+    return join_scatter_recv(recv_chunks, use_triton=use_triton)
+
+
+def _gather_sequence_redistribute(
+    seq_local,
+    src_cp_size,
+    dst_cp_size,
+    cp_group_cache,
+    *,
+    use_triton,
+):
+    """Synchronous CP contraction core with fused local layout transforms."""
+    global DEBUG_CP, DIRECTION
+    multiple = src_cp_size // dst_cp_size
+
+    src_ranks = cp_group_cache[src_cp_size][1]
+    cur_rank = cp_group_cache[src_cp_size][0].rank()
+    cur_global = src_ranks[cur_rank]
+    src_group_start = src_ranks[0]
+    src_local_rank = cur_global - src_group_start
+    send_column = src_local_rank // multiple
+    recv_column = src_local_rank % dst_cp_size
+
+    send_chunks = pack_gather_send(
+        seq_local,
+        multiple,
+        use_triton=use_triton,
+    )
+    recv_chunks = torch.empty_like(send_chunks)
+    ops = []
+    for i, chunk in enumerate(send_chunks):
+        if DEBUG_CP:
+            dst_g = DIRECTION["recv"][cur_global][i]
+        else:
+            dst_g = src_ranks[i * dst_cp_size + send_column]
+        if dst_g != cur_global:
+            ops.append(dist.P2POp(dist.isend, chunk, dst_g))
+
+        if DEBUG_CP:
+            src_g = DIRECTION["send"][cur_global][i]
+        else:
+            src_g = src_ranks[recv_column * multiple + i]
+        if src_g != cur_global:
+            ops.append(dist.P2POp(dist.irecv, recv_chunks[i], src_g))
+        else:
+            self_batch_group = src_local_rank // dst_cp_size
+            recv_chunks[i].copy_(send_chunks[self_batch_group])
+
+    if ops:
+        for work in dist.batch_isend_irecv(ops):
+            work.wait()
+    return assemble_gather_recv(recv_chunks, use_triton=use_triton)
+
+
 class _ScatterSequenceForCPTransition(torch.autograd.Function):
     @staticmethod
-    def forward(ctx, seq_local, src_cp_size, dst_cp_size, cp_group_cache):
-        global DEBUG_CP, DIRECTION
+    def forward(
+        ctx,
+        seq_local,
+        src_cp_size,
+        dst_cp_size,
+        cp_group_cache,
+        use_triton,
+    ):
         ctx.dst_cp_size = dst_cp_size
         ctx.src_cp_size = src_cp_size
         ctx.cp_group_cache = cp_group_cache
-        seq_len, batch, hidden = seq_local.shape
-        multiple = dst_cp_size // src_cp_size
-
-        dst_ranks = cp_group_cache[dst_cp_size][1]
-        src_ranks = cp_group_cache[src_cp_size][1]
-        cur_rank = cp_group_cache[src_cp_size][0].rank()
-        cur_global = src_ranks[cur_rank]
-        dst_group_start = (cur_global // dst_cp_size) * dst_cp_size
-        dst_local_rank = cur_global - dst_group_start
-
-        seq_local = seq_local.view(2 * multiple, seq_len // (2 * multiple), batch, hidden)
-        send_chunks, send_targets = [], []
-        for i in range(multiple):
-            idx = torch.tensor([i, 2 * multiple - i - 1], device=seq_local.device)
-            chunk = seq_local.index_select(0, idx).reshape(-1, batch, hidden)
-            if DEBUG_CP:
-                dst_g = DIRECTION["send"][cur_global][i]
-            else:
-                dst_g = dst_ranks[cur_rank * multiple + i]
-            send_chunks.append(chunk)
-            send_targets.append(dst_g)
-
-        ops, recv_chunks = [], [None] * multiple
-        for i, (chunk, dst_g) in enumerate(zip(send_chunks, send_targets)):
-            if dst_g != cur_global:
-                ops.append(dist.P2POp(dist.isend, chunk, dst_g))
-
-            if DEBUG_CP:
-                src_g = DIRECTION["recv"][cur_global][i]
-            else:
-                src_g = dst_ranks[i * src_cp_size + (dst_local_rank // multiple)]
-            if src_g != cur_global:
-                recv = torch.empty_like(chunk)
-                ops.append(dist.P2POp(dist.irecv, recv, src_g))
-            else:
-                self_send_idx = send_targets.index(cur_global)
-                recv = send_chunks[self_send_idx]
-            recv_chunks[i] = recv
-
-        for w in dist.batch_isend_irecv(ops):
-            w.wait()
-        return torch.cat(recv_chunks, dim=1)
+        ctx.use_triton = use_triton
+        return _scatter_sequence_redistribute(
+            seq_local,
+            src_cp_size,
+            dst_cp_size,
+            cp_group_cache,
+            use_triton=use_triton,
+        )
 
     @staticmethod
     def backward(ctx, grad):
         return _GatherSequenceForCPTransition.apply(
-            grad, ctx.dst_cp_size, ctx.src_cp_size, ctx.cp_group_cache
-        ), None, None, None
+            grad,
+            ctx.dst_cp_size,
+            ctx.src_cp_size,
+            ctx.cp_group_cache,
+            ctx.use_triton,
+        ), None, None, None, None
 
 
 class _GatherSequenceForCPTransition(torch.autograd.Function):
     @staticmethod
-    def forward(ctx, seq_local, src_cp_size, dst_cp_size, cp_group_cache):
-        global DEBUG_CP, DIRECTION
+    def forward(
+        ctx,
+        seq_local,
+        src_cp_size,
+        dst_cp_size,
+        cp_group_cache,
+        use_triton,
+    ):
         ctx.src_cp_size = src_cp_size
         ctx.dst_cp_size = dst_cp_size
         ctx.cp_group_cache = cp_group_cache
-        seq_len, batch, hidden = seq_local.shape
-        multiple = src_cp_size // dst_cp_size
-        local_batch = batch // multiple
-
-        src_ranks = cp_group_cache[src_cp_size][1]
-        cur_rank = cp_group_cache[src_cp_size][0].rank()
-        cur_global = src_ranks[cur_rank]
-        src_group_start = src_ranks[0]
-        src_local_rank = cur_global - src_group_start
-        send_column = src_local_rank // multiple
-        recv_column = src_local_rank % dst_cp_size
-
-        # The gather redistributes the batch dimension across data-parallel
-        # replicas, so each chunk keeps the full local sequence and carries one
-        # DP batch group (mirror of the scatter's batch-wise concatenation).
-        chunks = [
-            seq_local.narrow(1, i * local_batch, local_batch).contiguous()
-            for i in range(multiple)
-        ]
-
-        ops, recv = [], [None] * multiple
-        for i, chunk in enumerate(chunks):
-            if DEBUG_CP:
-                dst_g = DIRECTION["recv"][cur_global][i]
-            else:
-                dst_g = src_ranks[i * dst_cp_size + send_column]
-            if dst_g != cur_global:
-                ops.append(dist.P2POp(dist.isend, chunk, dst_g))
-
-            if DEBUG_CP:
-                src_g = DIRECTION["send"][cur_global][i]
-            else:
-                src_g = src_ranks[recv_column * multiple + i]
-            if src_g != cur_global:
-                r = torch.empty_like(chunk)
-                ops.append(dist.P2POp(dist.irecv, r, src_g))
-            else:
-                self_batch_group = src_local_rank // dst_cp_size
-                r = chunks[self_batch_group]
-            recv[i] = r
-
-        if ops:
-            for w in dist.batch_isend_irecv(ops):
-                w.wait()
-
-        # Scatter selected the i-th block from the front and the matching block
-        # from the back, then flattened those two blocks along the sequence
-        # dimension. Restore that exact 2-block layout before index_copy_.
-        out = seq_local.new_empty(
-            2 * multiple, seq_len // 2, local_batch, hidden
+        ctx.use_triton = use_triton
+        return _gather_sequence_redistribute(
+            seq_local,
+            src_cp_size,
+            dst_cp_size,
+            cp_group_cache,
+            use_triton=use_triton,
         )
-        for i in range(multiple):
-            idx = torch.tensor(
-                [i, 2 * multiple - i - 1],
-                device=seq_local.device,
-            )
-            received = recv[i].view(2, seq_len // 2, local_batch, hidden)
-            out.index_copy_(0, idx, received)
-        return out.view(seq_len * multiple, local_batch, hidden)
 
     @staticmethod
     def backward(ctx, grad):
         return _ScatterSequenceForCPTransition.apply(
-            grad, ctx.dst_cp_size, ctx.src_cp_size, ctx.cp_group_cache
-        ), None, None, None
+            grad,
+            ctx.dst_cp_size,
+            ctx.src_cp_size,
+            ctx.cp_group_cache,
+            ctx.use_triton,
+        ), None, None, None, None
+
+
+class _AsyncLaneGatherAutograd(torch.autograd.Function):
+    """Attach an already-enqueued lane gather to its local producer graphs."""
+
+    @staticmethod
+    def forward(
+        ctx,
+        received_output,
+        src_cp_size,
+        dst_cp_size,
+        cp_group_cache,
+        use_triton,
+        forward_state,
+        *lane_inputs,
+    ):
+        ctx.src_cp_size = src_cp_size
+        ctx.dst_cp_size = dst_cp_size
+        ctx.cp_group_cache = cp_group_cache
+        ctx.use_triton = use_triton
+        ctx.forward_state = forward_state
+        ctx.input_count = len(lane_inputs)
+        return received_output
+
+    @staticmethod
+    def backward(ctx, grad_output):
+        packed_grad = _scatter_sequence_redistribute(
+            grad_output,
+            ctx.dst_cp_size,
+            ctx.src_cp_size,
+            ctx.cp_group_cache,
+            use_triton=ctx.use_triton,
+        )
+        if packed_grad.size(1) % ctx.input_count:
+            raise RuntimeError(
+                f"Transition gradient batch {packed_grad.size(1)} cannot split "
+                f"across {ctx.input_count} lane inputs."
+            )
+        lane_batch = packed_grad.size(1) // ctx.input_count
+        lane_gradients = tuple(
+            chunk.contiguous()
+            for chunk in packed_grad.split(lane_batch, dim=1)
+        )
+        ctx.forward_state = None
+        return (None, None, None, None, None, None, *lane_gradients)
+
+
+def _lane_gather_routing(src_ranks, src_local_rank, dst_cp_size):
+    """Return deterministic send/receive routing for one contraction rank."""
+    src_cp_size = len(src_ranks)
+    if src_cp_size <= dst_cp_size or src_cp_size % dst_cp_size:
+        raise ValueError(
+            f"Lane routing requires nested CP contraction, got "
+            f"{src_cp_size}->{dst_cp_size}."
+        )
+    if not 0 <= src_local_rank < src_cp_size:
+        raise ValueError(
+            f"Source local rank {src_local_rank} is outside CP{src_cp_size}."
+        )
+    multiple = src_cp_size // dst_cp_size
+    send_column = src_local_rank // multiple
+    recv_column = src_local_rank % dst_cp_size
+    destination_lane = src_local_rank // dst_cp_size
+    destinations = tuple(
+        src_ranks[lane * dst_cp_size + send_column]
+        for lane in range(multiple)
+    )
+    receive_sources = tuple(
+        src_ranks[recv_column * multiple + piece]
+        for piece in range(multiple)
+    )
+    return destinations, destination_lane, receive_sources
+
+
+def _lane_communication_groups(multiple, lane_group_size):
+    """Partition contraction lanes into equally sized NCCL enqueue groups."""
+    if multiple < 1:
+        raise ValueError(f"Lane multiple must be positive, got {multiple}.")
+    if lane_group_size < 1:
+        raise ValueError(
+            f"Transition lane group size must be positive, got {lane_group_size}."
+        )
+    if multiple % lane_group_size:
+        raise ValueError(
+            f"Transition lane group size {lane_group_size} must divide "
+            f"contraction multiple {multiple}."
+        )
+    return tuple(
+        tuple(range(start, start + lane_group_size))
+        for start in range(0, multiple, lane_group_size)
+    )
+
+
+class AsyncLaneGatherTransition:
+    """Enqueue CP-contraction lane groups while later producers still compute.
+
+    ``lane_group_size=1`` preserves the original per-lane behavior. Larger
+    values delay an enqueue until that many consecutive producer lanes are
+    ready, allowing experiments that trade a shorter overlap window for fewer,
+    larger NCCL groups. ``finish`` waits only at the consumer boundary and then
+    performs the fused receive-layout write. The backward intentionally retains
+    the validated synchronous CP-expansion adjoint; backward/inter-cohort
+    overlap is a separate optimization.
+    """
+
+    def __init__(
+        self,
+        src_cp_size,
+        dst_cp_size,
+        cp_group_cache,
+        stream,
+        *,
+        use_triton=True,
+        lane_group_size=1,
+    ):
+        if src_cp_size <= dst_cp_size or src_cp_size % dst_cp_size:
+            raise ValueError(
+                f"Async lane gather requires nested CP contraction, got "
+                f"{src_cp_size}->{dst_cp_size}."
+            )
+        self.src_cp_size = src_cp_size
+        self.dst_cp_size = dst_cp_size
+        self.cp_group_cache = cp_group_cache
+        self.stream = stream
+        self.use_triton = use_triton
+        self.multiple = src_cp_size // dst_cp_size
+        self.lane_group_size = lane_group_size
+        self.lane_groups = _lane_communication_groups(
+            self.multiple,
+            self.lane_group_size,
+        )
+
+        src_ranks = cp_group_cache[src_cp_size][1]
+        cur_rank = cp_group_cache[src_cp_size][0].rank()
+        self.cur_global = src_ranks[cur_rank]
+        self.src_ranks = src_ranks
+        self.src_local_rank = self.cur_global - src_ranks[0]
+        (
+            self.destinations,
+            self.destination_lane,
+            self.receive_sources,
+        ) = _lane_gather_routing(
+            src_ranks,
+            self.src_local_rank,
+            dst_cp_size,
+        )
+
+        self.inputs = []
+        self.communication_inputs = []
+        self.pending_communication = []
+        self.enqueued_group_count = 0
+        self.works = []
+        self.received = None
+        self.output = None
+        self.done_event = None
+
+    def _enqueue_pending_group(self):
+        if not self.pending_communication:
+            return
+        expected_lanes = self.lane_groups[self.enqueued_group_count]
+        actual_lanes = tuple(lane for lane, _ in self.pending_communication)
+        if actual_lanes != expected_lanes:
+            raise RuntimeError(
+                f"Pending transition lanes {actual_lanes} do not match "
+                f"communication group {expected_lanes}."
+            )
+
+        ready_event = torch.cuda.Event()
+        ready_event.record(torch.cuda.current_stream())
+        with torch.cuda.stream(self.stream):
+            self.stream.wait_event(ready_event)
+            ops = []
+            for lane, communication_tensor in self.pending_communication:
+                destination = self.destinations[lane]
+                if destination != self.cur_global:
+                    ops.append(
+                        dist.P2POp(dist.isend, communication_tensor, destination)
+                    )
+
+                if lane == self.destination_lane:
+                    self.received = communication_tensor.new_empty(
+                        self.multiple,
+                        *communication_tensor.shape,
+                    )
+                    for piece, source in enumerate(self.receive_sources):
+                        if source == self.cur_global:
+                            self.received[piece].copy_(communication_tensor)
+                        else:
+                            ops.append(
+                                dist.P2POp(
+                                    dist.irecv,
+                                    self.received[piece],
+                                    source,
+                                )
+                            )
+
+            if ops:
+                self.works.extend(dist.batch_isend_irecv(ops))
+
+        for _, communication_tensor in self.pending_communication:
+            communication_tensor.record_stream(self.stream)
+        self.pending_communication.clear()
+        self.enqueued_group_count += 1
+
+    def enqueue(self, tensor):
+        lane = len(self.inputs)
+        if lane >= self.multiple:
+            raise RuntimeError(
+                f"Transition already has {self.multiple} lanes; "
+                f"cannot enqueue lane {lane}."
+            )
+        if tensor.dim() != 3:
+            raise ValueError(f"Expected an SBH lane tensor, got shape {tensor.shape}.")
+        if self.inputs and tensor.shape != self.inputs[0].shape:
+            raise ValueError(
+                f"Lane shape {tuple(tensor.shape)} differs from first lane "
+                f"{tuple(self.inputs[0].shape)}."
+            )
+        self.inputs.append(tensor)
+        communication_tensor = tensor.contiguous()
+        self.communication_inputs.append(communication_tensor)
+        self.pending_communication.append((lane, communication_tensor))
+        if len(self.pending_communication) == self.lane_group_size:
+            self._enqueue_pending_group()
+        return lane
+
+    def finish(self):
+        if len(self.inputs) != self.multiple:
+            raise RuntimeError(
+                f"Incomplete async transition: "
+                f"{len(self.inputs)}/{self.multiple} lanes."
+            )
+        if self.pending_communication:
+            pending = tuple(lane for lane, _ in self.pending_communication)
+            raise RuntimeError(f"Unflushed transition lanes at finish: {pending}.")
+        if self.enqueued_group_count != len(self.lane_groups):
+            raise RuntimeError(
+                f"Incomplete transition communication groups: "
+                f"{self.enqueued_group_count}/{len(self.lane_groups)}."
+            )
+        if self.received is None:
+            raise RuntimeError("This rank did not materialize its destination lane.")
+        # ProcessGroupNCCL does not expose its completion event.  Defer waits
+        # until every producer lane has been launched; by this point the P2P
+        # operations have had the entire remaining producer window to run.
+        with torch.cuda.stream(self.stream):
+            for work in self.works:
+                work.wait()
+            self.output = assemble_gather_recv(
+                self.received,
+                use_triton=self.use_triton,
+            )
+            self.done_event = torch.cuda.Event()
+            self.done_event.record(self.stream)
+        consumer_stream = torch.cuda.current_stream()
+        consumer_stream.wait_event(self.done_event)
+        self.output.record_stream(consumer_stream)
+        return _AsyncLaneGatherAutograd.apply(
+            self.output,
+            self.src_cp_size,
+            self.dst_cp_size,
+            self.cp_group_cache,
+            self.use_triton,
+            self,
+            *self.inputs,
+        )
 
 
 def _repeat_scatter_sequence_p2p(
@@ -778,7 +1109,15 @@ class _RepeatScatterSequenceForCPTransition(torch.autograd.Function):
         ), None, None, None
 
 
-def transmition_cp_size(seq, src_cp, dst_cp, cache, strategy="redistribute"):
+def transmition_cp_size(
+    seq,
+    src_cp,
+    dst_cp,
+    cache,
+    strategy="redistribute",
+    *,
+    use_triton=True,
+):
     """Change CP layout using redistribution or spatial-repeat semantics."""
     if src_cp == dst_cp:
         return seq
@@ -807,8 +1146,20 @@ def transmition_cp_size(seq, src_cp, dst_cp, cache, strategy="redistribute"):
     if DEBUG_CP:
         set_transition_direction(src_cp, dst_cp)
     if dst_cp > src_cp:
-        return _ScatterSequenceForCPTransition.apply(seq, src_cp, dst_cp, cache)
-    return _GatherSequenceForCPTransition.apply(seq, src_cp, dst_cp, cache)
+        return _ScatterSequenceForCPTransition.apply(
+            seq,
+            src_cp,
+            dst_cp,
+            cache,
+            use_triton,
+        )
+    return _GatherSequenceForCPTransition.apply(
+        seq,
+        src_cp,
+        dst_cp,
+        cache,
+        use_triton,
+    )
 
 
 # ---------- Global FLOPs formulas ----------
