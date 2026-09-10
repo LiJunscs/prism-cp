@@ -18,7 +18,9 @@ from transition_kernels import (
     pack_scatter_send,
 )
 
-sys.path.insert(0, "/workspace/repos/Megatron-LM")
+sys.path.insert(
+    0, os.environ.get("MEGATRON_LM_PATH", "/workspace/repos/Megatron-LM")
+)
 warnings.filterwarnings("ignore", category=UserWarning)
 
 
@@ -38,6 +40,16 @@ def add_common_benchmark_args(parser):
     parser.add_argument("--gdn-num-key-heads", type=int, default=32)
     parser.add_argument("--gdn-num-value-heads", type=int, default=32)
     parser.add_argument("--gdn-conv-kernel-dim", type=int, default=4)
+    parser.add_argument(
+        "--gdn-linear-cp-mode",
+        choices=["chunkwise", "headwise"],
+        default=None,
+        help=(
+            "Explicit Megatron linear-attention CP backend. None preserves the "
+            "checked-out Megatron-LM default; new chunkwise measurements should "
+            "pass --gdn-linear-cp-mode chunkwise."
+        ),
+    )
     parser.add_argument("--warmup", type=int, default=10)
     parser.add_argument("--iters", type=int, default=30)
     return parser
@@ -1258,7 +1270,7 @@ def build_gdn_te(hidden, n_heads, n_kv, cp_size, tp_group, cp_group, args):
         TELayerNormColumnParallelLinear, TERowParallelLinear, TENorm,
     )
 
-    config = TransformerConfig(
+    config_kwargs = dict(
         num_layers=1, hidden_size=hidden, num_attention_heads=n_heads,
         num_query_groups=n_kv, context_parallel_size=cp_size,
         tensor_model_parallel_size=1, pipeline_model_parallel_size=1,
@@ -1272,6 +1284,9 @@ def build_gdn_te(hidden, n_heads, n_kv, cp_size, tp_group, cp_group, args):
         linear_num_key_heads=args.gdn_num_key_heads,
         linear_num_value_heads=args.gdn_num_value_heads,
     )
+    if args.gdn_linear_cp_mode is not None:
+        config_kwargs["linear_cp_mode"] = args.gdn_linear_cp_mode
+    config = TransformerConfig(**config_kwargs)
     pg = ProcessGroupCollection(tp=tp_group, cp=cp_group)
     sub = GatedDeltaNetSubmodules(
         in_proj=ModuleSpec(module=TELayerNormColumnParallelLinear),

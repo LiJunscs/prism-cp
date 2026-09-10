@@ -82,12 +82,26 @@ def get_peak_gpu_mem_gb() -> float:
     return torch.cuda.max_memory_allocated() / (1024 ** 3)
 
 
-def write_csv_log(args, mfu_stats, mem_stats, total_flops, world_size, dp_size):
-    # CSV Header: only config + MFU + Memory
+def write_csv_log(
+    args,
+    mfu_stats,
+    mem_stats,
+    total_flops,
+    world_size,
+    dp_size,
+    avg_fwd,
+    avg_bwd,
+    avg_both,
+    global_tokens_per_second,
+):
+    # Keep raw timing/throughput alongside derived MFU so the measurements can
+    # be consumed by a performance model without reconstructing hidden inputs.
     header = [
         "timestamp", "module", "cp_size", "dp_size", "world_size",
         "seq_len", "bs", "hidden", "attn_backend",
         "warmup", "iters", "gpu_peak_tflops",
+        "fwd_ms_mean", "bwd_ms_mean", "both_ms_mean",
+        "global_tokens_per_second",
         # MFU mean/std/min/max
         "fwd_mfu_mean", "fwd_mfu_std", "fwd_mfu_min", "fwd_mfu_max",
         "bwd_mfu_mean", "bwd_mfu_std", "bwd_mfu_min", "bwd_mfu_max",
@@ -102,6 +116,7 @@ def write_csv_log(args, mfu_stats, mem_stats, total_flops, world_size, dp_size):
         args.module, args.cp, dp_size, world_size,
         args.seq_length, args.batch_size, args.hidden_size, args.attention_backend,
         args.warmup, args.iters, args.gpu_peak_tflops,
+        avg_fwd, avg_bwd, avg_both, global_tokens_per_second,
         # FWD MFU
         mfu_stats["fwd"]["mean"], mfu_stats["fwd"]["std"], mfu_stats["fwd"]["min"], mfu_stats["fwd"]["max"],
         # BWD MFU
@@ -180,6 +195,8 @@ def main():
     t_both = timed_fwd_bwd(fn, x, args.warmup, args.iters)
     avg_both = sum(t_both) / len(t_both)
     mfu_both = (per_gpu_flops * 3 / (avg_both / 1000) / 1e12) / args.gpu_peak_tflops
+    global_tokens = args.batch_size * args.seq_length * dp_size
+    global_tokens_per_second = global_tokens / (avg_both / 1000)
     local_peak_mem_gb = get_peak_gpu_mem_gb()
 
     # -------------------------- AllGather all ranks MFU & Memory --------------------------
@@ -201,11 +218,17 @@ def main():
         print("="*70)
         print(f"Module: {args.module} | CP={cp_size}, DP={dp_size}, World={world_size}")
         print(f"SeqLen={args.seq_length}, Hidden={args.hidden_size}, BS={args.batch_size}")
+        if args.module == "gdn":
+            print(f"GDN linear_cp_mode={args.gdn_linear_cp_mode or 'MEGATRON_DEFAULT'}")
         print("="*70)
         print(f"[Single GPU Rank0 MFU]")
         print(f"  FWD MFU:  {mfu_fwd:.4f}")
         print(f"  BWD MFU:  {mfu_bwd:.4f}")
         print(f"  FWD+BWD MFU: {mfu_both:.4f}")
+        print(f"  FWD time: {avg_fwd:.3f} ms")
+        print(f"  BWD time: {avg_bwd:.3f} ms")
+        print(f"  FWD+BWD time: {avg_both:.3f} ms")
+        print(f"  Global tokens/s: {global_tokens_per_second:.0f}")
         print(f"  Peak Mem: {local_peak_mem_gb:.2f} GB")
         print("-"*70)
         print(f"[All GPU Aggregated Statistics]")
@@ -218,7 +241,18 @@ def main():
         print("="*70)
 
         # Save MFU & memory to CSV
-        write_csv_log(args, mfu_stats, mem_stats, total_flops, world_size, dp_size)
+        write_csv_log(
+            args,
+            mfu_stats,
+            mem_stats,
+            total_flops,
+            world_size,
+            dp_size,
+            avg_fwd,
+            avg_bwd,
+            avg_both,
+            global_tokens_per_second,
+        )
 
     dist.destroy_process_group()
 

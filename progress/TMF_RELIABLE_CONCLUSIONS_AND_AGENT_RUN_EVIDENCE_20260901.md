@@ -82,3 +82,7 @@ R4 增加同一 launch、相同 all-CP4 layout 的 reference replay。CP1/mixed 
 ## 5. 后续结果进入本文的最低要求
 
 每个新 `agent_run` 至少保存 commit、dirty diff、代码 hash、完整命令、环境/GPU 拓扑、逐 rank 原始日志、汇总脚本版本和失败样本。正确性先于性能；BF16 数值门禁必须同时报告 fixed threshold、同 launch replay 本底和 hard cap。性能结果必须报告完整 DP/CP/PP/M/K/sequence/layer mix、logical tokens、warmup/measured steps、独立 launch 分布和 peak memory。未满足这些字段的运行仍可作为 C 级诊断证据，但不能改变本文的 A 级结论或 roadmap 里程碑。
+
+## 6. FSDP 新增记录（2026-09-10）
+
+[FSDP cohort 简洁结论](FSDP_COHORT_CONCLUSIONS_20260910.md)：PP1 FSDP 的小幅端到端收益、128K OOM、token 守恒与激活驻留区别，以及 repeat / 二维 GDN 的待验证边界。本轮用户报告不升级本文既有 A 级结论。

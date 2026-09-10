@@ -1,4 +1,6 @@
-# Heterogeneous Context Parallelism + TMF 系统总 Roadmap
+# Unified Heterogeneous Context Semantics 系统总 Roadmap
+
+> **2026-09-10 执行优先级更新：** 当前下一轮入口为 [下一轮实验执行计划](NEXT_EXPERIMENT_EXECUTION_PLAN_20260910.md)，依据 [当日最新分析归档](ATTENTION_PARALLELISM_ANALYSIS_ARCHIVE_20260910.md) 和 [训练实验计划](ATTENTION_TRAINING_EXPERIMENT_PLAN_20260910.md)。先建立 128K FSDP 最佳可行统一训练基线、定位时间/显存主因，再验证一个受限优化。下方 9 月 3 日阶段状态和短期排序保留为历史快照；与最新入口冲突时，不再作为立即推进 IR、TMF/cohort、headwise 或 planner 的依据。
 
 > 创建：2026-09-01  
 > 更新：2026-09-03  
@@ -9,21 +11,21 @@
 
 ## 1. 项目目标与当前结论
 
-项目目标是构建一个面向长序列预训练、SFT 和 RL 后训练的 heterogeneous context parallelism（HCP）系统。系统不再把 CP 抽象为“每层一个 CP degree”，而是把 dense/compressed/sparse/recurrent 等 token mixer 编译为统一的上下文数据流，并针对 token、compressed KV、index、recurrent state 等不同表示分别选择切分、复制、路由、通信和调度方式；只有当 hidden-state 的 DP/CP 分解确实需要改变时，才调用 TMF 完成时序合法化。
+项目目标是构建一个面向长序列预训练、SFT 和 RL 后训练的 unified heterogeneous context semantics 系统。系统不再把 CP 抽象为“每层一个 CP degree”，而是把 GQA、CSA、HCA、GDN 等 token mixer 编译为统一的上下文数据流，并针对 token、compressed KV、compressed index 和 recurrent state 等不同表示分别选择切分、复制、通信和调度方式；只有当 hidden-state 的 DP/CP 分解确实需要改变时，才调用 TMF 完成时序合法化。
 
 当前可以使用的结论是：
 
-> heterogeneous CP 的机制可行性和方向性收益已经得到可靠验证；TMF 已经解决 MBS=1 时缺少 batch 自由度、无法直接改变 DP/CP 分解的核心语义问题。no-PP 场景已经完成 transition、temporal bundle、正确性和长序列方向性收益验证；macro-cohort TMF 已在 PP=2 完成校准正确性和长序列性能闭环。但是，cohort/lane 粒度扫描没有产生决定性提升，128K 的 CP1 路径在 Triton transition kernel 下仍然 OOM，且当前可重复的明显收益主要集中在 GDN CP1。由此，项目主线从“继续微调 1F1B TMF”转为“先建立多表示 ContextFlow IR 和算子专用 CP backend，再由证据决定是否改变 hidden-state CP degree”。
+> heterogeneous CP 的机制可行性和方向性收益已经得到可靠验证；TMF 已经解决 MBS=1 时缺少 batch 自由度、无法直接改变 DP/CP 分解的核心语义问题。no-PP 场景已经完成 transition、temporal bundle、正确性和长序列方向性收益验证；macro-cohort TMF 已在 PP=2 完成校准正确性和长序列性能闭环。但是，cohort/lane 粒度扫描没有产生决定性提升，128K 的 CP1 路径在 Triton transition kernel 下仍然 OOM，且已有收益证据来自旧 headwise GDN。由此，项目主线从“继续微调 1F1B TMF”转为“先建立统一 Context Semantics IR 和算子专用 CP backend，再由新实现上的证据决定是否改变 hidden-state CP degree”。
 
-这不是“真实训练系统已经完成”的结论。当前尚未完成 CSA/HCA/QSA 算子 backend、多表示 layout、动态 sparse payload 通信、多节点、真实 optimizer 多步轨迹、checkpoint/recompute、训练恢复、完整 TP/DP/PP/CP/EP 组合、THD 动态规划以及 64/128 GPU 最终实验；128K CP1 还存在稳定 OOM，可行域没有闭合。
+这不是“真实训练系统已经完成”的结论。当前 P2 数据全部来自 headwise CP，只能作为历史机制证据，不能直接外推到最新 Megatron-LM 的 chunkwise GDN 或 contiguous-THD DSv4 路径。最新 `dev` 中 GDN CP 由 `linear_cp_mode` 控制，并已包含 DSv4 CSA/HCA contiguous-THD CP；当前尚未完成 CSA/HCA 的甜点 CP 校准、GDN+GQA 混合 workload、统一语义 IR、多节点、真实 optimizer 多步轨迹、checkpoint/recompute、训练恢复、完整 TP/DP/PP/CP/EP 组合、ragged THD 动态规划以及 64/128 GPU 最终实验。
 
 ### 1.1 2026-09-03 战略更新摘要
 
-1. **HCP 的统一对象升级为上下文数据流。** layer type 只用于前端识别；系统内部以 `Compress`、`GlobalIndex`、`SparsePayload`、`Window` 和 `PrefixState` 等依赖原语描述执行语义。
+1. **HCP 的统一对象升级为上下文语义数据流。** layer type 只用于前端识别；系统内部以 `TokenAttention`、`Compress`、`CompressedSelect`、`Window` 和 `PrefixState` 等依赖原语描述执行语义。
 2. **默认保持 canonical hidden layout。** 优先在同一 token CP 上改变 compressed KV、index 和 state 的布局与通信算法，避免逐层 remesh。
 3. **TMF 降为有条件的 mesh-transition backend。** 只有 layer-group 级低 CP 收益能够覆盖 transition、等待、显存和调度成本时，才改变 hidden-state 的 DP/CP 分解。
-4. **DeepSeek-V4 与 Qwen3.8-Flash-Next 成为首批结构忠实 workload。** 前者覆盖 CSA/HCA 的交替 compressed-attention，后者覆盖 `3×GDN + 1×QSA` 的 recurrent/sparse macro-group。
-5. **快速知识产权支线与顶会主线分离。** 近期发明专利只围绕已有代码支持的“MBS=1 optimizer-step-preserving TMF + 可逆 CP layout transition”，不把尚未实现的统一 IR、自动 planner、FSDP runtime 或 QSA backend写入核心保护链。
+4. **DeepSeek-V4 CSA/HCA 与 Qwen3.5Next GDN/GQA 成为首批结构忠实 workload。** CSA/HCA 用于校准 compressed context 的算子甜点 CP；`GDN+GQA` 用于验证 recurrent 与 token-attention 语义的统一表达和 layer-group layout 选择。
+5. **快速知识产权支线与顶会主线分离。** 近期发明专利压缩为 GDN+GQA 模块下的“GQA 高 CP、GDN 低 CP、MBS=1 TMF + 可逆 CP layout transition”；统一 context semantics、自动 planner 和通用 runtime 留给顶会主线。
 
 ### 1.2 2026-09-02 profiling 决策摘要
 
@@ -77,35 +79,31 @@
 CP_l \in \mathcal{C},\qquad DP_l = \frac{W_{DP\times CP}}{CP_l}.
 \]
 
-这是统一 ContextFlow 问题中的一个特例。最终目标不是证明“CP 越小越快”，而是同时选择上下文表示、通信 backend 和必要时的 hidden-state CP。Attention 可能需要 CP8，某些 GDN 层可能适合 CP1、CP2 或 CP4；只有低 CP 节省的计算/通信能够覆盖 transition、PP bubble 和额外 activation memory，才执行 TMF remesh。
+这是统一 Context Semantics 问题中的一个特例。最终目标不是证明“CP 越小越快”，而是同时选择上下文表示、通信 backend 和必要时的 hidden-state CP。Attention 可能需要 CP8，某些 GDN 层可能适合 CP1、CP2 或 CP4；只有低 CP 节省的计算/通信能够覆盖 transition、PP bubble 和额外 activation memory，才执行 TMF remesh。
 
-### 3.1 新一代 hybrid model 对问题定义的扩展
+### 3.1 当前 hybrid workload 对问题定义的扩展
 
-DeepSeek-V4 和 Qwen3.8-Flash-Next 表明，未来 hybrid model 的异构性不再只是 full attention 与 GDN 的差异：
+DeepSeek-V4 CSA/HCA 与 Qwen3.5Next GDN/GQA 表明，hybrid model 的异构性同时存在于上下文表示、依赖语义和适合的 CP backend：
 
 | 算子 | 上下文表示 | 依赖与通信特征 | 第一候选 backend |
 | --- | --- | --- | --- |
 | HCA | 每 128 个 token 形成一个 compressed KV entry | 在压缩序列上做全局 dense attention，通信规则且 payload 小 | boundary halo/local compress + compressed all-gather |
 | CSA | 每 4 个 token 形成 compressed KV，再选择 Top-k compressed entries | 全局压缩索引，核心 payload 仍是 compressed KV | boundary halo/local compress + compressed all-gather + local select |
-| QSA | 4-token micro-block index，选中 block 后访问原始 token KV | 全局 index 与动态、数据相关的原始 KV payload 分离 | replicated/sharded index + sparse ring 或 owner-routed KV |
-| GDN | 固定大小 recurrent state | prefix/state 顺序依赖，通信量和计算缩放不同于 attention | state propagation/scan、headwise CP，或有条件的低 CP + TMF |
+| GQA | 原始 token KV，多个 query head 共享 KV group | token 级因果依赖，长序列显存与计算压力要求较高 CP | 现有 attention CP backend，作为 canonical token context 基线 |
+| GDN | 固定大小 recurrent state | prefix/state 顺序依赖，通信量和计算缩放不同于 attention | 最新 chunkwise CP、state propagation/scan，或有条件的低 CP + TMF |
 
 严格来说，HCA 不是对压缩 KV 再做稀疏选择，而是对高度压缩后的序列做 dense attention。DeepSeek-V4 的训练实现已经采用“两阶段 contextual parallelism”：相邻 rank 交换压缩窗口边界 token，在本地压缩后 all-gather compressed KV，再执行 fused select-and-pad。这说明统一系统首先应支持“同一 hidden CP、不同内部表示布局”，而不是直接为 CSA/HCA 逐层切换 hidden CP。
 
-来源：
+当前实现基线以本地最新 Megatron-LM `dev` 为准：DSv4 使用 contiguous THD CP，GDN 通过 `linear_cp_mode` 选择 CP 实现；旧 P2 headwise 数据不作为新 backend 的性能结论。
 
-- [DeepSeek-V4 Technical Report](https://arxiv.org/html/2606.19348v1)；
-- [Qwen3.8-Next Technical Report](https://arxiv.org/html/2608.30320v1)；
-- [Qwen3.8-Flash-Next 官方仓库](https://github.com/QwenLM/Qwen3.8-Flash-Next)。
-
-### 3.2 ContextFlow IR：统一 HCP 抽象
+### 3.2 Context Semantics IR：统一 HCP 抽象
 
 每个 token mixer 应展开为一张 representation/data-dependency graph，而不是注册一个模型品牌或硬编码 layer type。首版 IR 只需要以下五类原语：
 
 ```text
+TokenAttention(kv_groups, causal)
 Compress(rate, overlap, segment_aware)
-GlobalIndex(granularity, topk, dynamic)
-SparsePayload(source=compressed|original_token)
+CompressedSelect(granularity, topk)
 Window(radius)
 PrefixState(state_shape, transition)
 ```
@@ -113,7 +111,7 @@ PrefixState(state_shape, transition)
 每个 IR value 必须携带：
 
 - logical sample、packed-sequence segment 和 token position；
-- 表示类型：token、compressed KV、index、sparse metadata 或 recurrent state；
+- 表示类型：token、compressed KV、compressed index/selection metadata 或 recurrent state；
 - 输入/输出 sharding、replication 和 owner mapping；
 - forward/backward dependency、saved tensor、recompute 与 auxiliary loss；
 - 通信规则性、消息大小、拓扑和可 overlap 区间。
@@ -129,7 +127,7 @@ P_l=(L_l^{in/out},\{L_l^r\},A_l,G_l,S_l),
 ### 3.3 HCP 的三级执行策略
 
 1. **算子/表示异构，hidden layout 不变。** 同一 `C_x` 下为 compressed KV、index 和 state 选择不同布局。该级别不需要 TMF，是 DeepSeek-V4 的默认候选。
-2. **layer-group hidden mesh 异构。** 只有相邻多层共享显著不同的最优 `C_x` 时才执行 remesh。Qwen 的 `3×GDN + 1×QSA` 是首个候选 macro-group；逐层交替的 CSA/HCA 默认不切 hidden CP。
+2. **layer-group hidden mesh 异构。** 只有相邻多层共享显著不同的最优 `C_x` 时才执行 remesh。Qwen3.5Next 的连续 GDN + GQA 是首个候选 macro-group；逐层交替的 CSA/HCA 先用来测量算子甜点 CP，不预设必须逐层切换 hidden CP。
 3. **时序合法化。** 当 spatial microbatch slots 不足以支持目标 DP/CP 分解时，以 TMF 从同一 optimizer step 内的独立 logical microbatches 构造 temporal cohort。
 
 该分层把 TMF 从“所有异构层都必须经过的路径”改为“只有第 2 级触发且空间不可整分时使用的执行后端”，避免把已有原型的通信和 activation lifetime 成本施加到所有 hybrid model 上。
@@ -208,8 +206,8 @@ Streaming 是**条件项**：只有相同 DP/CP layout、真实 `M/K` 下 macro 
 完整多维并行还需要补齐：
 
 - TP 与 CP group 的正交或嵌套关系；
-- CSA/HCA/QSA/GDN 的 representation-specific group、metadata 和 backward；
-- dynamic sparse index 的 worker/step load balance 与 owner skew；
+- CSA/HCA/GQA/GDN 的 representation-specific group、metadata 和 backward；
+- CSA compressed selection 的索引负载与 metadata 开销；
 - CP collective 与 MoE EP all-to-all 的链路/SM 竞争和 overlap；
 - layer-specific DP group 中的参数梯度同步；
 - distributed optimizer/ZeRO 的参数和 optimizer-state ownership；
@@ -262,7 +260,7 @@ T_{step}=T_{compute}+T_{repr\_comm}+T_{sparse\_imbalance}
 模型至少需要以下 profile primitive：
 
 - 每种 layer type 在不同 sequence、CP、TP、dtype、checkpoint 下的 forward/backward；
-- 每个 ContextFlow primitive 在不同 compression ratio、Top-k、block size、state shape 和 payload owner 分布下的 forward/backward；
+- 每个 Context Semantics primitive 在不同 compression ratio、Top-k、KV group、state shape 和 layout 下的 forward/backward；
 - ring attention 的暴露通信和 GDN/Ulysses all-to-all；
 - compressed all-gather、sparse ring、owner-routed KV、state propagation/scan 和 boundary halo；
 - 每种 CP transition 的 tensor volume、collective algorithm 和 topology；
@@ -292,20 +290,20 @@ CP_{i,l}=f(L_i,\text{layer}_l,\text{topology},\text{memory},\text{runtime state}
 5. **重配置抖动**：使用 hysteresis 或收益阈值，只有预测收益覆盖 transition 和重配置成本时才切换 CP。
 6. **RL 在线分布**：response length 随 policy 和 rollout 变化，planner 需要处理分布漂移、生成/训练资源耦合和多模型并存。
 
-这部分可以成为第一篇系统论文的扩展能力，也可以形成后续独立工作。第一篇论文不应因为等待完整 RL runtime 而推迟 ContextFlow IR、representation-specific HCP backend、条件式 TMF 与 planner 的闭环。
+这部分可以成为第一篇系统论文的扩展能力，也可以形成后续独立工作。第一篇论文不应因为等待完整 RL runtime 而推迟 Context Semantics IR、representation-specific HCP backend、条件式 TMF 与 planner 的闭环。
 
 ## 10. 论文级贡献结构
 
 面向 MLSys/SC 的第一阶段论文应形成以下贡献链：
 
-1. **问题发现与量化**：证明 recurrent、compressed-dense、compressed-sparse 和 dynamic-sparse mixer 对 context representation 与通信算法的需求不同；单一 CP/layout/backend 会造成系统性浪费。
-2. **ContextFlow IR**：把 token、compressed KV、index、sparse payload 和 recurrent state 的依赖、布局与 backward 统一表示，使新 hybrid architecture 不需要逐模型重写 distributed runtime。
-3. **多表示 HCP runtime**：在 canonical hidden layout 上执行 representation-specific all-gather、halo、sparse ring/routing 和 state propagation，并处理 packed sequence、动态稀疏负载与 CP/EP 通信竞争。
+1. **问题发现与量化**：证明 token attention、compressed-dense、compressed-select 和 recurrent mixer 对 context representation 与通信算法的需求不同；单一 CP/layout/backend 会造成系统性浪费。
+2. **Context Semantics IR**：把 token、compressed KV、selection metadata 和 recurrent state 的依赖、布局与 backward 统一表示，使新 hybrid architecture 不需要逐模型重写 distributed runtime。
+3. **多表示 HCP runtime**：在 canonical hidden layout 上执行 representation-specific all-gather、halo、compressed selection、GQA attention CP 和 state propagation，并处理 packed sequence 与 CP/EP 通信竞争。
 4. **有条件的 TMF**：在 profiler 证明 layer-group hidden remesh 有净收益且 MBS=1 空间不可整分时，以 optimizer-step-preserving temporal folding 合法化 DP/CP 转换。
 5. **联合 planner**：在显存约束下联合选择 representation layout、operator backend、hidden CP、layer group、TMF、PP/FSDP substrate 和 checkpoint。
-6. **生产尺度证据**：在 DeepSeek-V4 风格 CSA/HCA 和 Qwen3.8 风格 GDN/QSA workload 上，相对每个 workload 的最佳手工配置获得可重复的端到端收益，并解释收益与适用边界。
+6. **生产尺度证据**：在 DeepSeek-V4 风格 CSA/HCA 和 Qwen3.5Next 风格 GDN/GQA workload 上，相对每个 workload 的最佳手工配置获得可重复的端到端收益，并解释收益与适用边界。
 
-已有 DCP 研究输入/attention-mask 动态下的 blockwise CP，MTraining 研究 dynamic sparse attention 的负载均衡和 hierarchical sparse ring；因此本项目不能把“支持 sparse mask”本身作为创新点。差异必须落在 **跨算子类型、多表示 layout、recurrent state、跨层 plan 与 MBS1 mesh legalization 的统一**。OSDI 级别还需要证明这是一个对更广泛系统社区有意义的可复用 runtime abstraction，而不只是某一混合模型的 kernel/layout 优化；最好具备真实部署、长期运行、恢复和动态 workload 经验。
+已有工作已经分别覆盖 blockwise CP、稀疏 attention 和 recurrent-state 并行，因此本项目不能把“支持某一种 attention 或 GDN backend”本身作为创新点。差异必须落在 **跨算子类型、多表示 layout、recurrent state、跨层 plan 与 MBS1 mesh legalization 的统一 context semantics**。OSDI 级别还需要证明这是一个对更广泛系统社区有意义的可复用 runtime abstraction，而不只是某一混合模型的 kernel/layout 优化；最好具备真实部署、长期运行、恢复和动态 workload 经验。
 
 ## 11. 总 Roadmap
 
@@ -347,13 +345,13 @@ CP_{i,l}=f(L_i,\text{layer}_l,\text{topology},\text{memory},\text{runtime state}
 
 退出结论：现有 1F1B macro TMF 保留为 correctness oracle、专利证据和后续 layer-group remesh backend；不再把更多 cohort 粒度、局部 transition kernel 或 canonical/interleaved 1F1B 微调作为近期主要研究贡献。
 
-### G4：ContextFlow IR 与统一算子契约 — **当前最高优先级**
+### G4：Context Semantics IR 与统一算子契约 — **当前最高优先级**
 
 - 定义 token、compressed KV、index、sparse metadata、recurrent state 的统一 IR value。
-- 定义 `Compress`、`GlobalIndex`、`SparsePayload`、`Window`、`PrefixState` 五类首版 primitive。
+- 定义 `TokenAttention`、`Compress`、`CompressedSelect`、`Window`、`PrefixState` 五类首版 primitive。
 - 为每个 primitive 声明 packed-sequence boundary、forward/backward、saved tensor、recompute、auxiliary loss 和合法 layout。
 - 将参数 mesh 与 activation/context view 解耦，使同一 IR 可接 Megatron PP 和 TorchTitan/FSDP。
-- 构造 DeepSeek-V4 风格 CSA/HCA 与 Qwen3.8 风格 GDN/QSA 的结构忠实 operator proxy。
+- 直接接入最新 Megatron-LM 的 DSv4 CSA/HCA、chunkwise GDN 与 GQA 实现，避免用偏离真实 kernel 的 proxy 替代主要证据。
 
 退出条件：四类 operator 可以通过同一 IR 表达；固定单卡/固定 CP 下 output、loss 和 gradient 与直接实现一致；新增 operator 不需要修改 planner/runtime 核心数据结构。
 
@@ -361,8 +359,8 @@ CP_{i,l}=f(L_i,\text{layer}_l,\text{topology},\text{memory},\text{runtime state}
 
 - HCA：boundary-aware local compression + compressed KV all-gather。
 - CSA：overlapped compression + compressed index/select + compressed-payload attention。
-- QSA：compressed index + sparse ring 与 owner-routed original-KV 两个 backend。
-- GDN：headwise/state propagation 或 scan backend；现有低 CP + TMF 作为候选而非默认。
+- GQA：复用成熟 attention CP，记录 token KV layout、KV group 与通信 contract。
+- GDN：以 `linear_cp_mode=chunkwise` 为新基线，比较 state propagation/scan；低 CP + TMF 作为候选而非默认。
 - 采用 compact/implicit sparse metadata 和预分配 buffer，防止 mask/materialization 与临时申请造成 OOM。
 - 建立 CP/EP resource trace，测量 context communication 与 MoE all-to-all 的竞争和可 overlap 区间。
 
@@ -371,7 +369,7 @@ CP_{i,l}=f(L_i,\text{layer}_l,\text{topology},\text{memory},\text{runtime state}
 ### G6：Layer-group hidden CP 与 TMF Go/No-Go — **未开始**
 
 - DeepSeek `CSA-HCA` 交替组默认保持同一 hidden CP，仅探索 representation layout。
-- Qwen `GDN-GDN-GDN-QSA` 作为首个 layer-group remesh workload。
+- Qwen3.5Next `GDN...GDN-GQA` 作为首个 layer-group remesh workload。
 - 对同一 workload 比较：uniform CP、固定 hidden CP + 多表示 backend、layer-group CP、layer-group CP + TMF。
 - 将 transition、activation lifetime、macro/cohort wait 和 PP/FSDP 调度全部计入净收益。
 - 只有 layer-group hidden CP 在至少一个非 CP1 或可生产运行点带来稳定显著增益，才提升 TMF 为论文核心机制。
@@ -382,7 +380,7 @@ CP_{i,l}=f(L_i,\text{layer}_l,\text{topology},\text{memory},\text{runtime state}
 
 - 固定 parameter/optimizer mesh，支持动态 activation/context mesh view。
 - 验证 TP×PP×DP×CP×EP process group 与 FSDP/ZeRO 组合。
-- 建模 operator compute、representation communication、dynamic sparse imbalance、transition、PP/EP/DP sync、overlap 和 memory。
+- 建模 operator compute、representation communication、compressed selection、transition、PP/EP/DP sync、overlap 和 memory。
 - 用最短路径/动态规划搜索 operator backend、representation layout、layer group、hidden CP、TMF、checkpoint 和 stage placement。
 - 在 held-out 配置上验证预测误差、plan quality 和对人工 oracle 的 gap。
 
@@ -400,15 +398,15 @@ CP_{i,l}=f(L_i,\text{layer}_l,\text{topology},\text{memory},\text{runtime state}
 
 - 以 H100/H800 为主形成 8/16/32/64/128 GPU scaling curve。
 - 覆盖 32K/64K/128K，资源允许时加入 256K/1M operator 或 proxy 实验。
-- 覆盖 DeepSeek-V4 风格 CSA/HCA、Qwen3.8 风格 GDN/QSA、不同 compression/Top-k/state 参数。
+- 覆盖 DeepSeek-V4 风格 CSA/HCA、Qwen3.5Next 风格 GDN/GQA、不同 compression/Top-k/state 参数。
 - 与最佳 homogeneous CP、Megatron CP、Ulysses/ring、DCP/MTraining 类 sparse CP、StateFlow/LASP/ZeCO 类 recurrent backend 和人工 heterogeneous oracle 比较。
 - 发布代码、运行脚本、配置、原始结果 schema、planner 与最小复现实验。
 
 退出条件：相对每个 workload 的最佳可行 baseline 获得可重复收益，并能将收益分解到表示布局、通信 backend、load balance、layer-group remesh、TMF、schedule 和 memory。
 
-### IP0：快速发明专利支线 — **立即执行，与 G4 并行**
+### IP0：精简发明专利支线 — **与 G4 并行、低投入**
 
-- 首案聚焦 optimizer-step-preserving temporal mesh folding，不覆盖尚未实现的 ContextFlow/planner。
+- 首案只聚焦 GDN+GQA 异构模块：GQA 高 CP、GDN 低 CP，以及 MBS=1 下 optimizer-step-preserving temporal mesh folding；不覆盖统一 context semantics/planner。
 - 冻结源代码、运行记录、公开披露时间、发明人贡献和权属信息。
 - 完成 prior-art 检索后，将独立 logical microbatch cohort、temporal width、可逆 CP remesh、identity restoration 和 adjoint backward 组织为闭合技术链。
 - 产出技术交底书，再由专利代理师确定正式权利要求。
@@ -426,68 +424,76 @@ CP_{i,l}=f(L_i,\text{layer}_l,\text{topology},\text{memory},\text{runtime state}
 - profiler schema、warmup/measured 分离和逐 rank 数据完整。
 - cohort/lane 粒度实验无决定性提升，128K CP1 在 Triton 下仍 OOM；这两项作为负向边界冻结。
 
-### E1：冻结 ContextFlow IR v0 — **待执行**
+### E1：CSA/HCA contiguous-THD 甜点 CP 校准 — **进行中**
+
+1. 使用 `bench_fixed_mixed_csa_hca.py` 和最新 Megatron-LM `dev` 的真实 DSv4 hybrid attention 层。
+2. 固定等长样本、global batch 和 contiguous rank groups；THD layout 切换只更新 packed metadata/CP group，不搬运每 rank 已拥有的连续 token 区间。
+3. 分别扫描 CSA/HCA 的 CP1/2/4/8 forward+backward、peak allocated/reserved；先不加入 TMF、PP、optimizer 和 indexer auxiliary loss。
+4. 旧 `agent_run/` 与 `bench_data/` P2 结果明确标记为 headwise 历史数据，不与本轮 chunkwise/THD 数据拼接作性能曲线。
+5. 只有各算子甜点 CP 显著不同，才进入 CSA/HCA mixed-CP 端到端验证；否则把它们作为统一语义 IR 的固定-layout backend。
+
+### E2：冻结 Context Semantics IR v0 — **待执行**
 
 1. 定义五类 primitive 及其输入、输出、dependency 和 backward contract。
 2. 定义 `TensorLayout`：token/segment/head/state 轴、shard/replicate/owner placement。
 3. 定义 `LayoutEdge`：halo、all-gather、sparse route、state pass、TMF remesh。
 4. 定义 memory contract：saved tensor、metadata、workspace、in-flight buffer 和 recompute。
-5. 以静态 schema 表达 CSA、HCA、QSA、GDN；不在 runtime 中用模型名称分支。
+5. 以静态 schema 表达 CSA、HCA、GQA、GDN；不在 runtime 中用模型名称分支。
 
-### E2：四算子结构忠实 proxy — **待执行**
+### E3：四算子结构忠实接入 — **待执行**
 
 | workload | 固定结构参数 | 首要验证 |
 | --- | --- | --- |
 | DeepSeek CSA | compression=4，Top-k compressed KV，sliding window | cross-rank compression boundary、index 与 compressed payload |
 | DeepSeek HCA | compression=128，dense compressed attention，sliding window | 小表示复制与高 CP scaling |
-| Qwen QSA | index compression=4，最多 512 blocks/2048 tokens | index/payload 分离、dynamic owner skew |
-| Qwen GDN | 三层连续 GDN，与一层 QSA 组成 macro-group | state backend 与 layer-group CP 收益 |
+| Qwen3.5Next GQA | grouped-query token attention | 高 CP attention 基线、KV-group layout contract |
+| Qwen3.5Next GDN | 连续 GDN，与 GQA 组成 macro-group | `linear_cp_mode=chunkwise` 基线、state backend 与 layer-group CP 收益 |
 
-每个 proxy 先完成单卡 reference，再做 CP1/2/4/8 forward/backward、peak memory 和 packed-sequence boundary 测试。
+每个真实接入先完成单卡 reference，再做 CP1/2/4/8 forward/backward、peak memory 和 packed-sequence boundary 测试。
 
-### E3：固定 hidden CP 的多表示 backend — **待执行**
+### E4：固定 hidden CP 的多表示 backend — **待执行**
 
 1. 所有层保持相同 canonical token layout，排除 TMF/transition 干扰。
 2. HCA/CSA 实现 DeepSeek 风格 boundary exchange + local compress + compressed all-gather。
-3. QSA 比较 sparse ring 与 owner-routed KV，报告 bytes、消息数、owner skew、step imbalance 和 metadata memory。
-4. GDN 比较当前 headwise CP、state propagation/scan 候选。
+3. GQA 复用 token-attention CP，建立与 CSA/HCA/GDN 可比较的 hidden/KV layout contract。
+4. GDN 比较最新 chunkwise CP 与 state propagation/scan 候选；headwise 只保留为历史对照。
 5. 加入 MoE all-to-all stub 或真实 expert block，测量 CP/EP contention 与 overlap。
 
-### E4：真实 hybrid macro-workload — **待执行**
+### E5：真实 hybrid macro-workload — **待执行**
 
 1. DeepSeek 风格：`CSA-HCA-CSA-HCA`，默认不改变 hidden CP。
-2. Qwen 风格：`GDN-GDN-GDN-QSA`，比较固定 hidden CP 与 layer-group remesh。
+2. Qwen3.5Next 风格：按真实层序构造 `GDN...GDN-GQA`，比较固定 hidden CP 与 layer-group remesh。
 3. 对每个 workload 依次比较 uniform backend、operator-specific backend、多表示 layout、layer-group CP 和 TMF。
 4. 覆盖 32K/64K/128K；OOM 配置只用于可行域，不作为性能缺失点忽略。
 5. 每个性能结论同时报告 output/loss/gradient、step、peak allocated/reserved、通信和多个独立 launch。
 
-### E5：TMF 与训练语义条件分支 — **按证据执行**
+### E6：TMF 与训练语义条件分支 — **按证据执行**
 
-只有 E4 证明 layer-group hidden CP 有额外净收益后才继续：
+只有 E5 证明 layer-group hidden CP 有额外净收益后才继续：
 
 1. 复用当前 macro TMF oracle，不先重写 interleaved/streaming scheduler。
-2. 优先测试 Qwen `3×GDN` 组，使一次 remesh 被多个连续 GDN 层摊销。
+2. 优先测试 Qwen3.5Next 的连续 GDN 组，使一次 remesh 被多个 GDN 层摊销。
 3. 以 CP2/CP4 可生产点为主，CP1 仅在 memory 可行时作为上界。
 4. 补真实 optimizer 多步、checkpoint/recompute 和 save/resume。
 5. 若固定 hidden CP 的多表示 backend 已覆盖绝大部分收益，则停止扩大 TMF runtime。
 
-### E6：首版 ContextFlow Planner — **待执行**
+### E7：首版 Context Semantics Planner — **待执行**
 
-- 输入 operator primitive profile、representation layout、sparse owner 分布、transition、PP/EP contention 和 memory。
+- 输入 operator primitive profile、representation layout、compressed selection 分布、transition、PP/EP contention 和 memory。
 - 用 layer-group 最短路径选择 backend/layout/hidden CP/TMF/checkpoint。
 - 留出模型参数、sequence 和拓扑配置验证，不参与拟合。
 - 预测错误无法解释时回到 profiler 补测，不增加经验规则掩盖误差。
 
-### E7：短期退出条件
+### E8：短期退出条件
 
 短期阶段结束时，应交付：
 
-- 可表达四类 operator 的 ContextFlow IR v0；
+- 可表达四类 operator 的 Context Semantics IR v0；
 - DeepSeek/Qwen 两个 macro-workload 的固定 hidden CP、多表示 backend 结果；
-- QSA sparse-ring/owner-routed 的选择边界；
+- CSA/HCA 甜点 CP 与 GDN chunkwise/GQA backend 的选择边界；
 - layer-group CP/TMF 是否必要的明确 Go/No-Go；
 - checkpoint、peak memory、多步 optimizer 和恢复语义结论；
-- 能预测已测候选排序的首版 ContextFlow planner。
+- 能预测已测候选排序的首版 Context Semantics planner。
 
 ## 13. 性能瓶颈处理原则
 
@@ -495,10 +501,10 @@ CP_{i,l}=f(L_i,\text{layer}_l,\text{topology},\text{memory},\text{runtime state}
 
 | 当前优先级 | 瓶颈 | 首要证据 | 优化方向 | 继续条件 |
 | ---: | --- | --- | --- | --- |
-| 1 | 抽象不完整 | CSA/HCA/QSA/GDN 具有不同 context carrier 和 dependency | ContextFlow IR、representation layout、forward/backward contract | 四类 operator 可由相同 schema 表达并通过 reference oracle |
-| 2 | QSA 动态 sparse payload | compressed index 后访问原始 token KV，owner 分布数据相关 | sparse ring、owner-routed KV、block load balance | 同准确语义下出现可解释的性能选择边界 |
+| 1 | 抽象不完整 | CSA/HCA/GQA/GDN 具有不同 context carrier 和 dependency | Context Semantics IR、representation layout、forward/backward contract | 四类 operator 可由相同 schema 表达并通过 reference oracle |
+| 2 | CSA compressed selection | 压缩索引、Top-k 与 compressed payload 的开销随长度和 CP 改变 | compact metadata、selection/backend profile | 同准确语义下出现可解释的性能选择边界 |
 | 3 | compressed-attention CP | DeepSeek 已证明 boundary compression + compressed all-gather 可行 | segment-aware halo、padding-free compress、compact metadata | CSA/HCA packed-sequence forward/backward 闭环 |
-| 4 | GDN state parallel | 当前明显收益集中 CP1，128K CP1 OOM | headwise/state pass/scan 与低 CP+TMF 对照 | 至少一个非 CP1 或 memory-feasible 点有净收益 |
+| 4 | GDN state parallel | 旧 headwise 数据的明显收益集中 CP1，128K CP1 OOM | chunkwise/state pass/scan 与低 CP+TMF 对照 | 最新实现上至少一个非 CP1 或 memory-feasible 点有净收益 |
 | 5 | CP/EP 通信竞争 | DeepSeek/Qwen 均为 MoE，sparse CP 计算缩短后通信更易暴露 | topology-aware stream、layer-group schedule、resource model | exposed time 降低且不增加显存峰值/死锁风险 |
 | 6 | Activation/metadata memory | 128K CP1 OOM；block-sparse metadata 可能随长度增长 | tensor-level checkpoint、implicit index、预分配 arena | 128K 目标 macro-workload 在预算内稳定运行 |
 | 7 | Hidden remesh/TMF | cohort 粒度无决定性提升，逐层 remesh 可能吞噬收益 | 只在连续 layer group 上触发；保留 macro oracle | 相对固定 hidden CP + 多表示 backend 仍有稳定额外收益 |
@@ -512,9 +518,9 @@ CP_{i,l}=f(L_i,\text{layer}_l,\text{topology},\text{memory},\text{runtime state}
 flowchart TD
     A[异构层 CP 需求与 no-PP 证据<br/>已完成] --> B[TMF MBS=1 语义<br/>已完成]
     B --> C[Macro 1F1B 集成<br/>冻结范围已完成]
-    C --> D[ContextFlow IR<br/>当前主线]
-    C --> IP[TMF 聚焦发明专利<br/>并行支线]
-    D --> E[CSA/HCA/QSA/GDN<br/>operator proxy]
+    C --> D[Context Semantics IR<br/>顶会主线]
+    C --> IP[GDN+GQA 低 CP+TMF 专利<br/>精简支线]
+    D --> E[CSA/HCA/GQA/GDN<br/>真实 operator 接入]
     E --> F[固定 hidden CP<br/>多表示 backend]
     F --> G[DeepSeek/Qwen<br/>hybrid macro-workload]
     G --> H{layer-group hidden CP<br/>是否有额外净收益}
