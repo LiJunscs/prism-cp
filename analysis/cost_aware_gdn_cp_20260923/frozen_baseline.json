@@ -1,0 +1,179 @@
+{
+  "schema_version": 1,
+  "baseline_id": "dynamic-gdn-cp-h800-20260923",
+  "locked": true,
+  "locked_at": "2026-09-23",
+  "decision_policy": {
+    "minimum_successful_runs": 3,
+    "additional_repeats_required": false,
+    "reason": "Three independent runs are sufficient for the current engineering stability gate; five runs are not a prerequisite for implementation.",
+    "rerun_only_if": [
+      "source/config/topology changes",
+      "a new result contradicts the frozen direction",
+      "a final publication-grade confidence interval is required"
+    ]
+  },
+  "measurement_protocol": {
+    "world_size": 16,
+    "topology": "2 nodes x 8 NVIDIA H800 80GB",
+    "hidden_size": 4096,
+    "activation_recompute": false,
+    "measurement_steps": "11-40",
+    "primary_statistic": "per-run median step time",
+    "policies": {
+      "DU": "dynamic parent CP, no GDN child split",
+      "DS": "dynamic parent CP, uncapped smallest-feasible GDN child split",
+      "DC": "dynamic parent CP, GDN child split capped at 17408 padded tokens per rank"
+    }
+  },
+  "correctness_summary": {
+    "displayed_lm_loss": "exact match in checked runs",
+    "grad_norm_max_difference": "0.01-0.03",
+    "limitation": "Full parameter/update parity has not yet been established on the H800 campaign."
+  },
+  "measurements": [
+    {
+      "case_id": "strong-skew-8l-du",
+      "model_signature": "gdn-gqa-3to1-h4096-8l-no-recompute-bf16",
+      "topology_signature": "h800-80gb-2x8-world16",
+      "policy": "DU",
+      "status": "ok",
+      "parent_cp": 16,
+      "child_cp": 16,
+      "partition_mode": "zigzag",
+      "lengths": [132096, 64512, 32768, 16384, 8192, 8192],
+      "padded_lengths": [132096, 64512, 32768, 16384, 8192, 8192],
+      "step_ms_runs": [2089.8, 2178.0, 2186.0],
+      "peak_allocated_gib": 41.1
+    },
+    {
+      "case_id": "strong-skew-8l-ds-cp4",
+      "model_signature": "gdn-gqa-3to1-h4096-8l-no-recompute-bf16",
+      "topology_signature": "h800-80gb-2x8-world16",
+      "policy": "DS",
+      "status": "ok",
+      "parent_cp": 16,
+      "child_cp": 4,
+      "partition_mode": "zigzag",
+      "lengths": [132096, 64512, 32768, 16384, 8192, 8192],
+      "padded_lengths": [132096, 64512, 32768, 16384, 8192, 8192],
+      "step_ms_runs": [1824.0, 1807.4, 1851.6],
+      "peak_allocated_gib": 59.0
+    },
+    {
+      "case_id": "strong-skew-8l-dc-cp8",
+      "model_signature": "gdn-gqa-3to1-h4096-8l-no-recompute-bf16",
+      "topology_signature": "h800-80gb-2x8-world16",
+      "policy": "DC",
+      "status": "ok",
+      "parent_cp": 16,
+      "child_cp": 8,
+      "partition_mode": "zigzag",
+      "lengths": [132096, 64512, 32768, 16384, 8192, 8192],
+      "padded_lengths": [132096, 64512, 32768, 16384, 8192, 8192],
+      "step_ms_runs": [2155.1, 2121.5, 2069.8],
+      "peak_allocated_gib": 40.6
+    },
+    {
+      "case_id": "strong-skew-12l-du",
+      "model_signature": "gdn-gqa-3to1-h4096-12l-no-recompute-bf16",
+      "topology_signature": "h800-80gb-2x8-world16",
+      "policy": "DU",
+      "status": "ok",
+      "parent_cp": 16,
+      "child_cp": 16,
+      "partition_mode": "zigzag",
+      "lengths": [132096, 64512, 32768, 16384, 8192, 8192],
+      "padded_lengths": [132096, 64512, 32768, 16384, 8192, 8192],
+      "step_ms_runs": [3368.0, 3325.1, 3346.0],
+      "peak_allocated_gib": 59.1
+    },
+    {
+      "case_id": "strong-skew-12l-dc-cp8",
+      "model_signature": "gdn-gqa-3to1-h4096-12l-no-recompute-bf16",
+      "topology_signature": "h800-80gb-2x8-world16",
+      "policy": "DC",
+      "status": "ok",
+      "parent_cp": 16,
+      "child_cp": 8,
+      "partition_mode": "zigzag",
+      "lengths": [132096, 64512, 32768, 16384, 8192, 8192],
+      "padded_lengths": [132096, 64512, 32768, 16384, 8192, 8192],
+      "step_ms_runs": [3251.8, 3153.3, 3173.9],
+      "peak_allocated_gib": 58.2
+    },
+    {
+      "case_id": "strong-skew-12l-ds-cp4-oom",
+      "model_signature": "gdn-gqa-3to1-h4096-12l-no-recompute-bf16",
+      "topology_signature": "h800-80gb-2x8-world16",
+      "policy": "DS",
+      "status": "oom",
+      "attempt_count": 1,
+      "parent_cp": 16,
+      "child_cp": 4,
+      "partition_mode": "zigzag",
+      "lengths": [132096, 64512, 32768, 16384, 8192, 8192],
+      "padded_lengths": [132096, 64512, 32768, 16384, 8192, 8192],
+      "step_ms_runs": [],
+      "peak_allocated_gib": 79.0,
+      "note": "OOM on the first iteration near device capacity."
+    },
+    {
+      "case_id": "uniform-12l-du",
+      "model_signature": "gdn-gqa-3to1-h4096-12l-no-recompute-bf16",
+      "topology_signature": "h800-80gb-2x8-world16",
+      "policy": "DU",
+      "status": "ok",
+      "parent_cp": 16,
+      "child_cp": 16,
+      "partition_mode": "zigzag",
+      "lengths": [8192, 8192, 8192, 8192, 8192, 8192, 8192, 8192, 8192, 8192, 8192, 8192, 8192, 8192, 8192, 8192, 8192, 8192, 8192, 8192, 8192, 8192, 8192, 8192, 8192, 8192, 8192, 8192, 8192, 8192, 8192, 8192],
+      "step_ms_runs": [2144.8, 2119.4],
+      "peak_allocated_gib": 57.8,
+      "note": "Two-run diagnostic only; intentionally below the frozen three-run profile gate."
+    },
+    {
+      "case_id": "uniform-12l-ds-cp1",
+      "model_signature": "gdn-gqa-3to1-h4096-12l-no-recompute-bf16",
+      "topology_signature": "h800-80gb-2x8-world16",
+      "policy": "DS",
+      "status": "ok",
+      "parent_cp": 16,
+      "child_cp": 1,
+      "partition_mode": "zigzag",
+      "lengths": [8192, 8192, 8192, 8192, 8192, 8192, 8192, 8192, 8192, 8192, 8192, 8192, 8192, 8192, 8192, 8192, 8192, 8192, 8192, 8192, 8192, 8192, 8192, 8192, 8192, 8192, 8192, 8192, 8192, 8192, 8192, 8192],
+      "step_ms_runs": [2137.8, 2126.0],
+      "peak_allocated_gib": 57.8,
+      "note": "No stable benefit: paired throughput changes were +0.33% and -0.31%."
+    },
+    {
+      "case_id": "moderate-skew-12l-du",
+      "model_signature": "gdn-gqa-3to1-h4096-12l-no-recompute-bf16",
+      "topology_signature": "h800-80gb-2x8-world16",
+      "policy": "DU",
+      "status": "ok",
+      "parent_cp": 16,
+      "child_cp": 16,
+      "partition_mode": "zigzag",
+      "lengths": [32768, 24576, 24576, 24576, 24576, 24576, 24576, 24576, 8192, 8192, 8192, 8192, 8192, 8192, 8192],
+      "step_ms_runs": [2268.0],
+      "peak_allocated_gib": 59.0,
+      "note": "Single diagnostic median; not eligible as a successful profile point."
+    },
+    {
+      "case_id": "moderate-skew-12l-ds-cp2-oom",
+      "model_signature": "gdn-gqa-3to1-h4096-12l-no-recompute-bf16",
+      "topology_signature": "h800-80gb-2x8-world16",
+      "policy": "DS",
+      "status": "oom",
+      "attempt_count": 1,
+      "parent_cp": 16,
+      "child_cp": 2,
+      "partition_mode": "zigzag",
+      "lengths": [32768, 24576, 24576, 24576, 24576, 24576, 24576, 24576, 8192, 8192, 8192, 8192, 8192, 8192, 8192],
+      "step_ms_runs": [],
+      "peak_allocated_gib": 72.0,
+      "note": "Fused cross entropy requested an additional 2 GiB after the logged peak."
+    }
+  ]
+}

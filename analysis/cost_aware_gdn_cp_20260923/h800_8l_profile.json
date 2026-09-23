@@ -1,0 +1,87 @@
+{
+  "feature_tolerances": {
+    "linear_imbalance": 0.05,
+    "max_local_tokens_fraction": 0.05,
+    "max_sequence_fraction": 0.03,
+    "padding_fraction": 0.02,
+    "quadratic_concentration": 0.03,
+    "routed_fraction": 0.1,
+    "sequence_count": 0,
+    "total_padded_tokens_fraction": 0.05
+  },
+  "measurements": [
+    {
+      "feasible": true,
+      "features": {
+        "child_size": 16,
+        "linear_imbalance": 1.0,
+        "max_local_tokens": 16384,
+        "max_sequence_fraction": 0.50390625,
+        "padding_fraction": 0.0,
+        "parent_size": 16,
+        "quadratic_concentration": 0.335968017578125,
+        "routed_fraction": 0.0,
+        "sequence_count": 6,
+        "total_padded_tokens": 262144
+      },
+      "peak_memory_mib": 42086.4,
+      "sample_count": 3,
+      "source_case_ids": [
+        "strong-skew-8l-du"
+      ],
+      "step_ms": 2178.0
+    },
+    {
+      "feasible": true,
+      "features": {
+        "child_size": 8,
+        "linear_imbalance": 1.0078125,
+        "max_local_tokens": 16512,
+        "max_sequence_fraction": 0.50390625,
+        "padding_fraction": 0.0,
+        "parent_size": 16,
+        "quadratic_concentration": 0.335968017578125,
+        "routed_fraction": 0.93701171875,
+        "sequence_count": 6,
+        "total_padded_tokens": 262144
+      },
+      "peak_memory_mib": 41574.4,
+      "sample_count": 3,
+      "source_case_ids": [
+        "strong-skew-8l-dc-cp8"
+      ],
+      "step_ms": 2121.5
+    },
+    {
+      "feasible": true,
+      "features": {
+        "child_size": 4,
+        "linear_imbalance": 2.015625,
+        "max_local_tokens": 33024,
+        "max_sequence_fraction": 0.50390625,
+        "padding_fraction": 0.0,
+        "parent_size": 16,
+        "quadratic_concentration": 0.335968017578125,
+        "routed_fraction": 0.9375,
+        "sequence_count": 6,
+        "total_padded_tokens": 262144
+      },
+      "peak_memory_mib": 60416.0,
+      "sample_count": 3,
+      "source_case_ids": [
+        "strong-skew-8l-ds-cp4"
+      ],
+      "step_ms": 1824.0
+    }
+  ],
+  "memory_limit_mib": 81920.0,
+  "memory_reserve_mib": 2048.0,
+  "min_predicted_speedup": 0.02,
+  "minimum_samples": 3,
+  "model_signature": "gdn-gqa-3to1-h4096-8l-no-recompute-bf16",
+  "profile_id": "h800-8l-v1",
+  "schema_version": 1,
+  "skipped_measurements": [],
+  "source_baseline_sha256": "60769d44cdd1ae81a05c31ca775605740e645f6b9e9ca9aca5ef5f880752c044",
+  "topology_signature": "h800-80gb-2x8-world16"
+}

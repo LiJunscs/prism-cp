@@ -1,0 +1,130 @@
+{
+  "feature_tolerances": {
+    "linear_imbalance": 0.05,
+    "max_local_tokens_fraction": 0.05,
+    "max_sequence_fraction": 0.03,
+    "padding_fraction": 0.02,
+    "quadratic_concentration": 0.03,
+    "routed_fraction": 0.1,
+    "sequence_count": 0,
+    "total_padded_tokens_fraction": 0.05
+  },
+  "measurements": [
+    {
+      "feasible": true,
+      "features": {
+        "child_size": 16,
+        "linear_imbalance": 1.0,
+        "max_local_tokens": 16384,
+        "max_sequence_fraction": 0.50390625,
+        "padding_fraction": 0.0,
+        "parent_size": 16,
+        "quadratic_concentration": 0.335968017578125,
+        "routed_fraction": 0.0,
+        "sequence_count": 6,
+        "total_padded_tokens": 262144
+      },
+      "peak_memory_mib": 60518.4,
+      "sample_count": 3,
+      "source_case_ids": [
+        "strong-skew-12l-du"
+      ],
+      "step_ms": 3346.0
+    },
+    {
+      "feasible": true,
+      "features": {
+        "child_size": 8,
+        "linear_imbalance": 1.0078125,
+        "max_local_tokens": 16512,
+        "max_sequence_fraction": 0.50390625,
+        "padding_fraction": 0.0,
+        "parent_size": 16,
+        "quadratic_concentration": 0.335968017578125,
+        "routed_fraction": 0.93701171875,
+        "sequence_count": 6,
+        "total_padded_tokens": 262144
+      },
+      "peak_memory_mib": 59596.8,
+      "sample_count": 3,
+      "source_case_ids": [
+        "strong-skew-12l-dc-cp8"
+      ],
+      "step_ms": 3173.9
+    },
+    {
+      "feasible": false,
+      "features": {
+        "child_size": 4,
+        "linear_imbalance": 2.015625,
+        "max_local_tokens": 33024,
+        "max_sequence_fraction": 0.50390625,
+        "padding_fraction": 0.0,
+        "parent_size": 16,
+        "quadratic_concentration": 0.335968017578125,
+        "routed_fraction": 0.9375,
+        "sequence_count": 6,
+        "total_padded_tokens": 262144
+      },
+      "peak_memory_mib": 80896.0,
+      "sample_count": 1,
+      "source_case_ids": [
+        "strong-skew-12l-ds-cp4-oom"
+      ],
+      "step_ms": null
+    },
+    {
+      "feasible": false,
+      "features": {
+        "child_size": 2,
+        "linear_imbalance": 1.0,
+        "max_local_tokens": 16384,
+        "max_sequence_fraction": 0.125,
+        "padding_fraction": 0.0,
+        "parent_size": 16,
+        "quadratic_concentration": 0.083984375,
+        "routed_fraction": 0.939453125,
+        "sequence_count": 15,
+        "total_padded_tokens": 262144
+      },
+      "peak_memory_mib": 73728.0,
+      "sample_count": 1,
+      "source_case_ids": [
+        "moderate-skew-12l-ds-cp2-oom"
+      ],
+      "step_ms": null
+    }
+  ],
+  "memory_limit_mib": 81920.0,
+  "memory_reserve_mib": 2048.0,
+  "min_predicted_speedup": 0.02,
+  "minimum_samples": 3,
+  "model_signature": "gdn-gqa-3to1-h4096-12l-no-recompute-bf16",
+  "profile_id": "h800-12l-v1",
+  "schema_version": 1,
+  "skipped_measurements": [
+    {
+      "reason": "insufficient-successful-runs",
+      "sample_count": 2,
+      "source_case_ids": [
+        "uniform-12l-du"
+      ]
+    },
+    {
+      "reason": "insufficient-successful-runs",
+      "sample_count": 2,
+      "source_case_ids": [
+        "uniform-12l-ds-cp1"
+      ]
+    },
+    {
+      "reason": "insufficient-successful-runs",
+      "sample_count": 1,
+      "source_case_ids": [
+        "moderate-skew-12l-du"
+      ]
+    }
+  ],
+  "source_baseline_sha256": "60769d44cdd1ae81a05c31ca775605740e645f6b9e9ca9aca5ef5f880752c044",
+  "topology_signature": "h800-80gb-2x8-world16"
+}
