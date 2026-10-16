@@ -1,0 +1,175 @@
+[rank1]:[W1016 16:30:00.137259190 ProcessGroupNCCL.cpp:5023] [PG ID 0 PG GUID 0 Rank 1]  using GPU 1 as device used by this process is currently unknown. This can potentially cause a hang if this rank to GPU mapping is incorrect. You can specify device_id in init_process_group() to force use of a particular device.
+WARNING:megatron.core.utils:CUDA out of memory. Tried to allocate 96.00 MiB. GPU 1 has a total capacity of 79.18 GiB of which 33.38 MiB is free. Process 126221 has 51.90 GiB memory in use. Process 128671 has 27.23 GiB memory in use. Of the allocated memory 46.56 GiB is allocated by PyTorch, and 499.52 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://pytorch.org/docs/stable/notes/cuda.html#environment-variables)
+['Traceback (most recent call last):\n', '  File "/workspace/repos/Megatron-LM/pretrain_gpt.py", line 401, in forward_step\n    output_tensor = model(\n                    ^^^^^^\n', '  File "/workspace/envs/flagscale/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1773, in _wrapped_call_impl\n    return self._call_impl(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n', '  File "/workspace/envs/flagscale/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1784, in _call_impl\n    return forward_call(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n', '  File "/workspace/repos/Megatron-LM/megatron/core/distributed/data_parallel_base.py", line 22, in forward\n    return self.module(*inputs, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n', '  File "/workspace/envs/flagscale/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1773, in _wrapped_call_impl\n    return self._call_impl(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n', '  File "/workspace/envs/flagscale/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1784, in _call_impl\n    return forward_call(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n', '  File "/workspace/repos/Megatron-LM/megatron/core/transformer/module.py", line 633, in forward\n    outputs = self.module(*inputs, **kwargs)\n              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n', '  File "/workspace/envs/flagscale/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1773, in _wrapped_call_impl\n    return self._call_impl(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n', '  File "/workspace/envs/flagscale/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1784, in _call_impl\n    return forward_call(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n', '  File "/workspace/repos/Megatron-LM/megatron/core/models/gpt/gpt_model.py", line 630, in forward\n    decoder_output = self.decoder(\n                     ^^^^^^^^^^^^^\n', '  File "/workspace/repos/Megatron-LM/megatron/core/transformer/transformer_block.py", line 1264, in __call__\n    return super().__call__(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n', '  File "/workspace/repos/Megatron-LM/megatron/core/transformer/module.py", line 454, in __call__\n    return super().__call__(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n', '  File "/workspace/envs/flagscale/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1773, in _wrapped_call_impl\n    return self._call_impl(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n', '  File "/workspace/envs/flagscale/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1784, in _call_impl\n    return forward_call(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n', '  File "/workspace/repos/Megatron-LM/megatron/core/transformer/transformer_block.py", line 1471, in forward\n    hidden_states = self._parent_contiguous_forward(\n                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n', '  File "/workspace/repos/Megatron-LM/megatron/core/transformer/transformer_block.py", line 890, in _parent_contiguous_forward\n    hidden_states = run_layer(hidden_states)\n                    ^^^^^^^^^^^^^^^^^^^^^^^^\n', '  File "/workspace/repos/Megatron-LM/megatron/core/transformer/transformer_block.py", line 879, in run_layer\n    output, _ = current_layer(\n                ^^^^^^^^^^^^^^\n', '  File "/workspace/repos/Megatron-LM/megatron/core/transformer/transformer_layer.py", line 1874, in __call__\n    return super().__call__(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n', '  File "/workspace/repos/Megatron-LM/megatron/core/transformer/module.py", line 454, in __call__\n    return super().__call__(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n', '  File "/workspace/envs/flagscale/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1773, in _wrapped_call_impl\n    return self._call_impl(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n', '  File "/workspace/envs/flagscale/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1784, in _call_impl\n    return forward_call(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n', '  File "/workspace/repos/Megatron-LM/megatron/core/transformer/transformer_layer.py", line 931, in forward\n    hidden_states, context = self._forward_attention(*args, **kwargs)\n                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n', '  File "/workspace/repos/Megatron-LM/megatron/core/transformer/transformer_layer.py", line 787, in _forward_attention\n    attention_output_with_bias = self.self_attention(\n                                 ^^^^^^^^^^^^^^^^^^^^\n', '  File "/workspace/envs/flagscale/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1773, in _wrapped_call_impl\n    return self._call_impl(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n', '  File "/workspace/envs/flagscale/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1784, in _call_impl\n    return forward_call(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n', '  File "/workspace/repos/Megatron-LM/megatron/core/transformer/attention.py", line 1676, in forward\n    core_attn_out = apply_module(self.core_attention)(\n                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n', '  File "/workspace/envs/flagscale/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1773, in _wrapped_call_impl\n    return self._call_impl(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n', '  File "/workspace/envs/flagscale/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1784, in _call_impl\n    return forward_call(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n', '  File "/workspace/repos/Megatron-LM/megatron/core/extensions/transformer_engine.py", line 2037, in forward\n    core_attn_out = super().forward(query, key, value, attention_mask, **_fa_kwargs)\n                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n', '  File "/workspace/repos/TransformerEngine/transformer_engine/pytorch/jit.py", line 67, in wrapper\n    return disabled_f(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^\n', '  File "/workspace/envs/flagscale/lib/python3.12/site-packages/torch/_dynamo/external_utils.py", line 198, in nonrecursive_disable_wrapper\n    return fn(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^\n', '  File "/workspace/repos/TransformerEngine/transformer_engine/pytorch/attention/dot_product_attention/dot_product_attention.py", line 1452, in forward\n    return self.flash_attention(\n           ^^^^^^^^^^^^^^^^^^^^^\n', '  File "/workspace/envs/flagscale/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1773, in _wrapped_call_impl\n    return self._call_impl(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n', '  File "/workspace/envs/flagscale/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1784, in _call_impl\n    return forward_call(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n', '  File "/workspace/repos/TransformerEngine/transformer_engine/pytorch/attention/dot_product_attention/backends.py", line 929, in forward\n    output = attn_forward_func_with_cp(\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^\n', '  File "/workspace/repos/TransformerEngine/transformer_engine/pytorch/attention/dot_product_attention/context_parallel.py", line 4130, in attn_forward_func_with_cp\n    out = AttnFuncWithCPAndKVP2P.apply(*args)\n          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n', '  File "/workspace/envs/flagscale/lib/python3.12/site-packages/torch/autograd/function.py", line 576, in apply\n    return super().apply(*args, **kwargs)  # type: ignore[misc]\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n', '  File "/workspace/repos/TransformerEngine/transformer_engine/pytorch/attention/dot_product_attention/context_parallel.py", line 1741, in forward\n    cp_p2p_fwd_flash_attn(\n', '  File "/workspace/repos/TransformerEngine/transformer_engine/pytorch/attention/dot_product_attention/context_parallel.py", line 955, in cp_p2p_fwd_flash_attn\n    fa_outputs = flash_attn_fwd(\n                 ^^^^^^^^^^^^^^^\n', '  File "/workspace/envs/flagscale/lib/python3.12/site-packages/torch/_library/custom_ops.py", line 681, in __call__\n    return self._opoverload(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n', '  File "/workspace/envs/flagscale/lib/python3.12/site-packages/torch/_ops.py", line 829, in __call__\n    return self._op(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^\n', '  File "/workspace/envs/flagscale/lib/python3.12/site-packages/torch/_library/autograd.py", line 111, in autograd_impl\n    result = forward_no_grad(*args, Metadata(keyset, keyword_only_args))\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n', '  File "/workspace/envs/flagscale/lib/python3.12/site-packages/torch/_library/autograd.py", line 40, in forward_no_grad\n    result = op.redispatch(keyset & _C._after_autograd_keyset, *args, **kwargs)\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n', '  File "/workspace/envs/flagscale/lib/python3.12/site-packages/torch/_ops.py", line 836, in redispatch\n    return self._handle.redispatch_boxed(keyset, *args, **kwargs)  # type: ignore[return-value]\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n', '  File "/workspace/envs/flagscale/lib/python3.12/site-packages/torch/_library/custom_ops.py", line 344, in backend_impl\n    result = self._backend_fns[device_type](*args, **kwargs)\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n', '  File "/workspace/envs/flagscale/lib/python3.12/site-packages/torch/_compile.py", line 53, in inner\n    return disable_fn(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^\n', '  File "/workspace/envs/flagscale/lib/python3.12/site-packages/torch/_dynamo/eval_frame.py", line 929, in _fn\n    return fn(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^\n', '  File "/workspace/envs/flagscale/lib/python3.12/site-packages/torch/_library/custom_ops.py", line 377, in wrapped_fn\n    return fn(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^\n', '  File "/workspace/envs/flagscale/lib/python3.12/site-packages/flash_attn_3/flash_attn_interface.py", line 107, in _flash_attn_forward\n    out, softmax_lse, out_accum, softmax_lse_accum = flash_attn_3_gpu.fwd(\n                                                     ^^^^^^^^^^^^^^^^^^^^^\n', '  File "/workspace/envs/flagscale/lib/python3.12/site-packages/torch/_ops.py", line 1243, in __call__\n    return self._op(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^\n', 'torch.OutOfMemoryError: CUDA out of memory. Tried to allocate 96.00 MiB. GPU 1 has a total capacity of 79.18 GiB of which 33.38 MiB is free. Process 126221 has 51.90 GiB memory in use. Process 128671 has 27.23 GiB memory in use. Of the allocated memory 46.56 GiB is allocated by PyTorch, and 499.52 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://pytorch.org/docs/stable/notes/cuda.html#environment-variables)\n']
+[rank1]: Traceback (most recent call last):
+[rank1]:   File "/workspace/repos/Megatron-LM/pretrain_gpt.py", line 593, in <module>
+[rank1]:     pretrain(
+[rank1]:   File "/workspace/repos/Megatron-LM/megatron/training/training.py", line 2122, in pretrain
+[rank1]:     iteration, num_floating_point_operations_so_far = train(
+[rank1]:                                                       ^^^^^^
+[rank1]:   File "/workspace/repos/Megatron-LM/megatron/training/training.py", line 4718, in train
+[rank1]:     ) = train_step(
+[rank1]:         ^^^^^^^^^^^
+[rank1]:   File "/workspace/repos/prism-cp/experiments/sequence_dynamic_cp/runtime.py", line 687, in train_step
+[rank1]:     value = original_step(*args, **kwargs)
+[rank1]:             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank1]:   File "/workspace/repos/Megatron-LM/megatron/training/training.py", line 3232, in train_step
+[rank1]:     losses_reduced = forward_backward_func(
+[rank1]:                      ^^^^^^^^^^^^^^^^^^^^^^
+[rank1]:   File "/workspace/repos/Megatron-LM/megatron/core/pipeline_parallel/schedules.py", line 779, in forward_backward_no_pipelining
+[rank1]:     output_tensor, num_tokens = forward_step(
+[rank1]:                                 ^^^^^^^^^^^^^
+[rank1]:   File "/workspace/repos/Megatron-LM/megatron/core/pipeline_parallel/schedules.py", line 512, in forward_step
+[rank1]:     output_tensor, loss_func = forward_step_func(data_iterator, model)
+[rank1]:                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank1]:   File "/workspace/repos/Megatron-LM/pretrain_gpt.py", line 401, in forward_step
+[rank1]:     output_tensor = model(
+[rank1]:                     ^^^^^^
+[rank1]:   File "/workspace/envs/flagscale/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1773, in _wrapped_call_impl
+[rank1]:     return self._call_impl(*args, **kwargs)
+[rank1]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank1]:   File "/workspace/envs/flagscale/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1784, in _call_impl
+[rank1]:     return forward_call(*args, **kwargs)
+[rank1]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank1]:   File "/workspace/repos/Megatron-LM/megatron/core/distributed/data_parallel_base.py", line 22, in forward
+[rank1]:     return self.module(*inputs, **kwargs)
+[rank1]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank1]:   File "/workspace/envs/flagscale/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1773, in _wrapped_call_impl
+[rank1]:     return self._call_impl(*args, **kwargs)
+[rank1]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank1]:   File "/workspace/envs/flagscale/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1784, in _call_impl
+[rank1]:     return forward_call(*args, **kwargs)
+[rank1]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank1]:   File "/workspace/repos/Megatron-LM/megatron/core/transformer/module.py", line 633, in forward
+[rank1]:     outputs = self.module(*inputs, **kwargs)
+[rank1]:               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank1]:   File "/workspace/envs/flagscale/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1773, in _wrapped_call_impl
+[rank1]:     return self._call_impl(*args, **kwargs)
+[rank1]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank1]:   File "/workspace/envs/flagscale/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1784, in _call_impl
+[rank1]:     return forward_call(*args, **kwargs)
+[rank1]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank1]:   File "/workspace/repos/Megatron-LM/megatron/core/models/gpt/gpt_model.py", line 630, in forward
+[rank1]:     decoder_output = self.decoder(
+[rank1]:                      ^^^^^^^^^^^^^
+[rank1]:   File "/workspace/repos/Megatron-LM/megatron/core/transformer/transformer_block.py", line 1264, in __call__
+[rank1]:     return super().__call__(*args, **kwargs)
+[rank1]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank1]:   File "/workspace/repos/Megatron-LM/megatron/core/transformer/module.py", line 454, in __call__
+[rank1]:     return super().__call__(*args, **kwargs)
+[rank1]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank1]:   File "/workspace/envs/flagscale/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1773, in _wrapped_call_impl
+[rank1]:     return self._call_impl(*args, **kwargs)
+[rank1]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank1]:   File "/workspace/envs/flagscale/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1784, in _call_impl
+[rank1]:     return forward_call(*args, **kwargs)
+[rank1]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank1]:   File "/workspace/repos/Megatron-LM/megatron/core/transformer/transformer_block.py", line 1471, in forward
+[rank1]:     hidden_states = self._parent_contiguous_forward(
+[rank1]:                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank1]:   File "/workspace/repos/Megatron-LM/megatron/core/transformer/transformer_block.py", line 890, in _parent_contiguous_forward
+[rank1]:     hidden_states = run_layer(hidden_states)
+[rank1]:                     ^^^^^^^^^^^^^^^^^^^^^^^^
+[rank1]:   File "/workspace/repos/Megatron-LM/megatron/core/transformer/transformer_block.py", line 879, in run_layer
+[rank1]:     output, _ = current_layer(
+[rank1]:                 ^^^^^^^^^^^^^^
+[rank1]:   File "/workspace/repos/Megatron-LM/megatron/core/transformer/transformer_layer.py", line 1874, in __call__
+[rank1]:     return super().__call__(*args, **kwargs)
+[rank1]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank1]:   File "/workspace/repos/Megatron-LM/megatron/core/transformer/module.py", line 454, in __call__
+[rank1]:     return super().__call__(*args, **kwargs)
+[rank1]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank1]:   File "/workspace/envs/flagscale/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1773, in _wrapped_call_impl
+[rank1]:     return self._call_impl(*args, **kwargs)
+[rank1]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank1]:   File "/workspace/envs/flagscale/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1784, in _call_impl
+[rank1]:     return forward_call(*args, **kwargs)
+[rank1]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank1]:   File "/workspace/repos/Megatron-LM/megatron/core/transformer/transformer_layer.py", line 931, in forward
+[rank1]:     hidden_states, context = self._forward_attention(*args, **kwargs)
+[rank1]:                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank1]:   File "/workspace/repos/Megatron-LM/megatron/core/transformer/transformer_layer.py", line 787, in _forward_attention
+[rank1]:     attention_output_with_bias = self.self_attention(
+[rank1]:                                  ^^^^^^^^^^^^^^^^^^^^
+[rank1]:   File "/workspace/envs/flagscale/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1773, in _wrapped_call_impl
+[rank1]:     return self._call_impl(*args, **kwargs)
+[rank1]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank1]:   File "/workspace/envs/flagscale/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1784, in _call_impl
+[rank1]:     return forward_call(*args, **kwargs)
+[rank1]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank1]:   File "/workspace/repos/Megatron-LM/megatron/core/transformer/attention.py", line 1676, in forward
+[rank1]:     core_attn_out = apply_module(self.core_attention)(
+[rank1]:                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank1]:   File "/workspace/envs/flagscale/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1773, in _wrapped_call_impl
+[rank1]:     return self._call_impl(*args, **kwargs)
+[rank1]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank1]:   File "/workspace/envs/flagscale/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1784, in _call_impl
+[rank1]:     return forward_call(*args, **kwargs)
+[rank1]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank1]:   File "/workspace/repos/Megatron-LM/megatron/core/extensions/transformer_engine.py", line 2037, in forward
+[rank1]:     core_attn_out = super().forward(query, key, value, attention_mask, **_fa_kwargs)
+[rank1]:                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank1]:   File "/workspace/repos/TransformerEngine/transformer_engine/pytorch/jit.py", line 67, in wrapper
+[rank1]:     return disabled_f(*args, **kwargs)
+[rank1]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank1]:   File "/workspace/envs/flagscale/lib/python3.12/site-packages/torch/_dynamo/external_utils.py", line 198, in nonrecursive_disable_wrapper
+[rank1]:     return fn(*args, **kwargs)
+[rank1]:            ^^^^^^^^^^^^^^^^^^^
+[rank1]:   File "/workspace/repos/TransformerEngine/transformer_engine/pytorch/attention/dot_product_attention/dot_product_attention.py", line 1452, in forward
+[rank1]:     return self.flash_attention(
+[rank1]:            ^^^^^^^^^^^^^^^^^^^^^
+[rank1]:   File "/workspace/envs/flagscale/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1773, in _wrapped_call_impl
+[rank1]:     return self._call_impl(*args, **kwargs)
+[rank1]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank1]:   File "/workspace/envs/flagscale/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1784, in _call_impl
+[rank1]:     return forward_call(*args, **kwargs)
+[rank1]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank1]:   File "/workspace/repos/TransformerEngine/transformer_engine/pytorch/attention/dot_product_attention/backends.py", line 929, in forward
+[rank1]:     output = attn_forward_func_with_cp(
+[rank1]:              ^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank1]:   File "/workspace/repos/TransformerEngine/transformer_engine/pytorch/attention/dot_product_attention/context_parallel.py", line 4130, in attn_forward_func_with_cp
+[rank1]:     out = AttnFuncWithCPAndKVP2P.apply(*args)
+[rank1]:           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank1]:   File "/workspace/envs/flagscale/lib/python3.12/site-packages/torch/autograd/function.py", line 576, in apply
+[rank1]:     return super().apply(*args, **kwargs)  # type: ignore[misc]
+[rank1]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank1]:   File "/workspace/repos/TransformerEngine/transformer_engine/pytorch/attention/dot_product_attention/context_parallel.py", line 1741, in forward
+[rank1]:     cp_p2p_fwd_flash_attn(
+[rank1]:   File "/workspace/repos/TransformerEngine/transformer_engine/pytorch/attention/dot_product_attention/context_parallel.py", line 955, in cp_p2p_fwd_flash_attn
+[rank1]:     fa_outputs = flash_attn_fwd(
+[rank1]:                  ^^^^^^^^^^^^^^^
+[rank1]:   File "/workspace/envs/flagscale/lib/python3.12/site-packages/torch/_library/custom_ops.py", line 681, in __call__
+[rank1]:     return self._opoverload(*args, **kwargs)
+[rank1]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank1]:   File "/workspace/envs/flagscale/lib/python3.12/site-packages/torch/_ops.py", line 829, in __call__
+[rank1]:     return self._op(*args, **kwargs)
+[rank1]:            ^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank1]:   File "/workspace/envs/flagscale/lib/python3.12/site-packages/torch/_library/autograd.py", line 111, in autograd_impl
+[rank1]:     result = forward_no_grad(*args, Metadata(keyset, keyword_only_args))
+[rank1]:              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank1]:   File "/workspace/envs/flagscale/lib/python3.12/site-packages/torch/_library/autograd.py", line 40, in forward_no_grad
+[rank1]:     result = op.redispatch(keyset & _C._after_autograd_keyset, *args, **kwargs)
+[rank1]:              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank1]:   File "/workspace/envs/flagscale/lib/python3.12/site-packages/torch/_ops.py", line 836, in redispatch
+[rank1]:     return self._handle.redispatch_boxed(keyset, *args, **kwargs)  # type: ignore[return-value]
+[rank1]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank1]:   File "/workspace/envs/flagscale/lib/python3.12/site-packages/torch/_library/custom_ops.py", line 344, in backend_impl
+[rank1]:     result = self._backend_fns[device_type](*args, **kwargs)
+[rank1]:              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank1]:   File "/workspace/envs/flagscale/lib/python3.12/site-packages/torch/_compile.py", line 53, in inner
+[rank1]:     return disable_fn(*args, **kwargs)
+[rank1]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank1]:   File "/workspace/envs/flagscale/lib/python3.12/site-packages/torch/_dynamo/eval_frame.py", line 929, in _fn
+[rank1]:     return fn(*args, **kwargs)
+[rank1]:            ^^^^^^^^^^^^^^^^^^^
+[rank1]:   File "/workspace/envs/flagscale/lib/python3.12/site-packages/torch/_library/custom_ops.py", line 377, in wrapped_fn
+[rank1]:     return fn(*args, **kwargs)
+[rank1]:            ^^^^^^^^^^^^^^^^^^^
+[rank1]:   File "/workspace/envs/flagscale/lib/python3.12/site-packages/flash_attn_3/flash_attn_interface.py", line 107, in _flash_attn_forward
+[rank1]:     out, softmax_lse, out_accum, softmax_lse_accum = flash_attn_3_gpu.fwd(
+[rank1]:                                                      ^^^^^^^^^^^^^^^^^^^^^
+[rank1]:   File "/workspace/envs/flagscale/lib/python3.12/site-packages/torch/_ops.py", line 1243, in __call__
+[rank1]:     return self._op(*args, **kwargs)
+[rank1]:            ^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank1]: torch.OutOfMemoryError: CUDA out of memory. Tried to allocate 96.00 MiB. GPU 1 has a total capacity of 79.18 GiB of which 33.38 MiB is free. Process 126221 has 51.90 GiB memory in use. Process 128671 has 27.23 GiB memory in use. Of the allocated memory 46.56 GiB is allocated by PyTorch, and 499.52 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://pytorch.org/docs/stable/notes/cuda.html#environment-variables)
+[rank1]:[W1016 16:30:11.689190466 ProcessGroupNCCL.cpp:1538] Warning: WARNING: destroy_process_group() was not called before program exit, which can leak resources. For more info, please see https://pytorch.org/docs/stable/distributed.html#shutdown (function operator())

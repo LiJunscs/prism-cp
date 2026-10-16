@@ -1,0 +1,129 @@
+{
+  "schema": "native_n_vs_reused_two_v1",
+  "numerical_validation": "skipped",
+  "cases": [
+    {
+      "case": "72_samples_2p25Mi",
+      "status": "complete",
+      "native_n_mean_seconds": 18.252829934780795,
+      "native_n_rankmax_seconds": [
+        18.25626839697361,
+        18.253383671864867,
+        18.248837735503912
+      ],
+      "native_n_measured_updates": 3,
+      "native_n_warmup_updates": 2,
+      "native_n_total_updates": 5,
+      "native_n_peak_required_gib": 49.16539001464844,
+      "two_reused_mean_seconds": 14.708877194051942,
+      "two_reused_measured_updates": 15,
+      "two_reused_rankmax_seconds": [
+        14.696476839482784,
+        14.691519616171718,
+        14.704097712412477,
+        14.701464904472232,
+        14.698046876117587,
+        14.693352857604623,
+        14.706728909164667,
+        14.749806731939316,
+        14.70156879350543,
+        14.706174302846193,
+        14.71112073212862,
+        14.721333235502243,
+        14.715652326121926,
+        14.711074164137244,
+        14.724739909172058
+      ],
+      "two_source": "experiments/sequence_dynamic_cp/results/joint_cp_two_20261015/runs/72_samples_2p25Mi/records",
+      "time_reduction_pct": 19.415908401008252,
+      "throughput_gain_pct": 24.093971918957745
+    },
+    {
+      "case": "568_samples_16Mi",
+      "status": "complete",
+      "native_n_mean_seconds": 126.45420993554096,
+      "native_n_rankmax_seconds": [
+        126.76356077194214,
+        126.318354556337,
+        126.28071447834373
+      ],
+      "native_n_measured_updates": 3,
+      "native_n_warmup_updates": 2,
+      "native_n_total_updates": 5,
+      "native_n_peak_required_gib": 49.51793909072876,
+      "two_reused_mean_seconds": 100.97085284044346,
+      "two_reused_measured_updates": 15,
+      "two_reused_rankmax_seconds": [
+        100.75274151749909,
+        103.29988733492792,
+        101.223348332569,
+        101.23976999334991,
+        100.81448681466281,
+        100.74014388024807,
+        100.68515669368207,
+        100.72105054371059,
+        100.69534767791629,
+        100.74595982395113,
+        100.66300090774894,
+        100.7357168495655,
+        100.73386903107166,
+        100.80224788933992,
+        100.71006531640887
+      ],
+      "two_source": "experiments/sequence_dynamic_cp/results/joint_cp_two_20261015/runs/568_samples_16Mi/records",
+      "time_reduction_pct": 20.15224096381405,
+      "throughput_gain_pct": 25.238330050917668
+    },
+    {
+      "case": "1136_samples_32Mi",
+      "status": "complete",
+      "native_n_mean_seconds": 251.19777369995913,
+      "native_n_rankmax_seconds": [
+        251.41748926974833,
+        251.32773861289024,
+        250.84809321723878
+      ],
+      "native_n_measured_updates": 3,
+      "native_n_warmup_updates": 2,
+      "native_n_total_updates": 5,
+      "native_n_peak_required_gib": 49.93112802505493,
+      "two_reused_mean_seconds": 202.90137547291815,
+      "two_reused_measured_updates": 15,
+      "two_reused_rankmax_seconds": [
+        202.76461517438293,
+        202.78035536408424,
+        202.77672073245049,
+        202.7508749552071,
+        202.75213726051152,
+        202.75680804252625,
+        202.77393238805234,
+        202.7284371033311,
+        202.70202035456896,
+        204.52344680018723,
+        203.34201714769006,
+        202.781786641106,
+        202.7000763770193,
+        202.76742036640644,
+        202.61998338624835
+      ],
+      "two_source": "experiments/sequence_dynamic_cp/results/joint_cp_two_20261015/runs/1136_samples_32Mi/records",
+      "time_reduction_pct": 19.226443576975395,
+      "throughput_gain_pct": 23.802893457214267
+    }
+  ],
+  "complete": true,
+  "budget": {
+    "authorized_launches": 3,
+    "authorized_updates": 15,
+    "actual_launches": 3,
+    "actual_complete_updates": 15,
+    "retries": 0,
+    "rank_update_records": 240
+  },
+  "limitations": [
+    "N has only 3 measured updates; steady state not established independently",
+    "N and reused two have different launch dates and timing windows",
+    "No numerical comparisons or convergence validation",
+    "Historical Hybrid K16 guard domain is not a universal physical feasibility boundary"
+  ]
+}

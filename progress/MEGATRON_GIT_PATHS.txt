@@ -1,0 +1,10 @@
+megatron/core/context_parallel_layout/utils.py
+megatron/core/datasets/data_schedule.py
+megatron/core/extensions/transformer_engine.py
+megatron/core/mixed_context_parallel.py
+megatron/core/packed_seq_params.py
+megatron/core/ssm/gated_delta_net/gdn.py
+megatron/core/transformer/attention.py
+megatron/core/transformer/transformer_block.py
+megatron/core/transformer/transformer_config.py
+tests/unit_tests/test_packed_sequence_cp.py

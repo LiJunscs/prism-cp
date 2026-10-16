@@ -1,0 +1,53 @@
+{
+  "schema": "native_n_remeasure_v1",
+  "world": 16,
+  "jobs": [
+    {
+      "case": "72_samples_2p25Mi",
+      "arm": "native_n",
+      "iterations": 5,
+      "warmup": 2,
+      "capacity_tokens": 16384,
+      "two_bundle": "experiments/sequence_dynamic_cp/results/joint_cp_two_20261015",
+      "two_run": "72_samples_2p25Mi",
+      "two_steps": [
+        11,
+        25
+      ]
+    },
+    {
+      "case": "568_samples_16Mi",
+      "arm": "native_n",
+      "iterations": 5,
+      "warmup": 2,
+      "capacity_tokens": 16384,
+      "two_bundle": "experiments/sequence_dynamic_cp/results/joint_cp_two_20261015",
+      "two_run": "568_samples_16Mi",
+      "two_steps": [
+        11,
+        25
+      ]
+    },
+    {
+      "case": "1136_samples_32Mi",
+      "arm": "native_n",
+      "iterations": 5,
+      "warmup": 2,
+      "capacity_tokens": 16384,
+      "two_bundle": "experiments/sequence_dynamic_cp/results/joint_cp_two_20261015",
+      "two_run": "1136_samples_32Mi",
+      "two_steps": [
+        11,
+        25
+      ]
+    }
+  ],
+  "capacity_source": "evidence/native_k16_source.json: Hybrid single native K16 conservative guard; not a physical upper bound",
+  "numerical_validation": "skipped",
+  "budget": "three launches, five complete updates each; warmup 1-2; measure 3-5",
+  "native_planner": "unmodified AST of Megatron next_hdp_group_packing_aware; square n^2/CP + greedy/fill",
+  "execution": "DUPC native parent-contiguous; no joint adapter; MLP follows attention CP/layout; GGG stays contiguous",
+  "first_step_cache_release": "same once-before-finalize empty_cache as historical joint runs",
+  "hbm": "unchanged min(90% physical,total-8GiB) guard",
+  "two": "historical measurements reused; different launch dates/windows"
+}

@@ -1,0 +1,9 @@
+operator,cp,n,median_ms,min_launch_ms,max_launch_ms,peak_alloc_gib,latency_speedup,group_gpu_ms,scaling_efficiency,regime
+csa,1,2,191.440,191.020,191.860,24.30,1.0,191.440,1.0000,W8_B1_A1_D8divC_replica_concurrent_fused
+csa,2,2,638.325,638.070,638.580,27.03,0.2999,1276.650,0.1500,W8_B1_A1_D8divC_replica_concurrent_fused
+csa,4,2,534.745,534.710,534.780,13.73,0.3580,2138.980,0.0895,W8_B1_A1_D8divC_replica_concurrent_fused
+csa,8,2,480.260,479.590,480.930,7.07,0.3986,3842.080,0.0498,W8_B1_A1_D8divC_replica_concurrent_fused
+hca,1,2,125.480,125.130,125.830,22.76,1.0,125.480,1.0000,W8_B1_A1_D8divC_replica_concurrent_fused
+hca,2,2,70.445,70.150,70.740,12.11,1.7812,140.890,0.8906,W8_B1_A1_D8divC_replica_concurrent_fused
+hca,4,2,36.345,36.030,36.660,6.29,3.4525,145.380,0.8631,W8_B1_A1_D8divC_replica_concurrent_fused
+hca,8,2,19.990,19.000,20.980,3.37,6.2771,159.920,0.7846,W8_B1_A1_D8divC_replica_concurrent_fused

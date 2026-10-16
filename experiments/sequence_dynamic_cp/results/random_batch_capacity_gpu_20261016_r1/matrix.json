@@ -1,0 +1,185 @@
+{
+  "arms": [
+    {
+      "id": "L224_S4_N_K24",
+      "case": "L224_S4",
+      "K_Ki": 24,
+      "updates": 5,
+      "warmup": [
+        1,
+        2
+      ],
+      "measure": [
+        3,
+        4,
+        5
+      ],
+      "microbatches": 8,
+      "port": 29810
+    },
+    {
+      "id": "L224_S4_N_K14",
+      "case": "L224_S4",
+      "K_Ki": 14,
+      "updates": 5,
+      "warmup": [
+        1,
+        2
+      ],
+      "measure": [
+        3,
+        4,
+        5
+      ],
+      "microbatches": 10,
+      "port": 29811
+    },
+    {
+      "id": "L224_S4_N_K28",
+      "case": "L224_S4",
+      "K_Ki": 28,
+      "updates": 5,
+      "warmup": [
+        1,
+        2
+      ],
+      "measure": [
+        3,
+        4,
+        5
+      ],
+      "microbatches": 5,
+      "port": 29812
+    },
+    {
+      "id": "L224_S4_joint",
+      "case": "L224_S4",
+      "K_Ki": null,
+      "updates": 5,
+      "warmup": [
+        1,
+        2
+      ],
+      "measure": [
+        3,
+        4,
+        5
+      ],
+      "microbatches": 10,
+      "port": 29813
+    },
+    {
+      "id": "irregular_S8_N_K24",
+      "case": "irregular_S8",
+      "K_Ki": 24,
+      "updates": 5,
+      "warmup": [
+        1,
+        2
+      ],
+      "measure": [
+        3,
+        4,
+        5
+      ],
+      "microbatches": 6,
+      "port": 29814
+    },
+    {
+      "id": "irregular_S8_joint",
+      "case": "irregular_S8",
+      "K_Ki": null,
+      "updates": 5,
+      "warmup": [
+        1,
+        2
+      ],
+      "measure": [
+        3,
+        4,
+        5
+      ],
+      "microbatches": 11,
+      "port": 29815
+    },
+    {
+      "id": "L192_S4_N_K24",
+      "case": "L192_S4",
+      "K_Ki": 24,
+      "updates": 5,
+      "warmup": [
+        1,
+        2
+      ],
+      "measure": [
+        3,
+        4,
+        5
+      ],
+      "microbatches": 5,
+      "port": 29816
+    },
+    {
+      "id": "L192_S4_joint",
+      "case": "L192_S4",
+      "K_Ki": null,
+      "updates": 5,
+      "warmup": [
+        1,
+        2
+      ],
+      "measure": [
+        3,
+        4,
+        5
+      ],
+      "microbatches": 10,
+      "port": 29817
+    }
+  ],
+  "maximum_launches": 8,
+  "maximum_updates": 40,
+  "retries": 0,
+  "world": 16,
+  "nodes": [
+    "10.0.27.1",
+    "10.0.25.65"
+  ],
+  "python": "/workspace/envs/flagscale/bin/python",
+  "model": {
+    "mode": "joint",
+    "model_contract": {
+      "hidden_size": 4096,
+      "ffn_hidden_size": 16384,
+      "num_attention_heads": 32,
+      "num_query_groups": 8,
+      "kv_channels": 128,
+      "linear_num_key_heads": 16,
+      "linear_num_value_heads": 16,
+      "linear_key_head_dim": 128,
+      "linear_value_head_dim": 128,
+      "linear_conv_kernel_dim": 4
+    },
+    "vocab_size": 32768,
+    "model_provenance": "original shared catalogue; device total observed in diag r3; external rounded up from 6.692 GiB to 7 GiB; original static estimate and 2 GiB margin retained"
+  },
+  "pattern": "GGG*GGG*",
+  "layers": 8,
+  "bf16": true,
+  "TP": 1,
+  "PP": 1,
+  "recompute": false,
+  "variable_N_reuse": {
+    "L224_S4": "L224_S4_N_K14",
+    "irregular_S8": "irregular_S8_N_K24",
+    "L192_S4": "L192_S4_N_K24"
+  },
+  "fixed_N_K_Ki": 24,
+  "training": "same input/content/labels/masks/seed; dense MLP/head/loss/F+B/finalize/norm clip/nonzero Adam/parameter synchronization; beta0 native next_hdp_group_packing_aware+DUPC without joint adapter; contiguous GDN including MLP; joint retains MLP redistribution",
+  "memory_guard": "min(0.9*total,total-8GiB); unchanged training guard; existing once allocator empty cache before first finalize",
+  "constraints": "no GPU preflight/numerics/logical/profiling/search/hash/inventory/retry; pause matrix on OOM, infrastructure or training-contract failure",
+  "maximum_gpu_launches_including_initialization_failure": 9,
+  "authorized_gpu_retries": 1,
+  "recovery": "User confirmed resource availability; resume A N24 once in independent attempt directory; prior initialization OOM and zero updates retained",
+  "archived": true
+}

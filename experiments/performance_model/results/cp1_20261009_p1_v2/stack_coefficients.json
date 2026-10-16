@@ -1,0 +1,52 @@
+[
+  {
+    "gqa_layers": 1,
+    "gdn_layers": 0,
+    "A_ms_per_ki2": 0.05545098956660255,
+    "B_ms_per_ki": 2.4969755231835795,
+    "Nstar_ki": 45.030314926741674,
+    "provenance": "fitted_CP1_local_explanation",
+    "limitation": "no block replay, residual, CP, communication or topology validation",
+    "crossover_in_single_sequence_calibration_range": true
+  },
+  {
+    "gqa_layers": 0,
+    "gdn_layers": 1,
+    "A_ms_per_ki2": 0.0,
+    "B_ms_per_ki": 2.5366016104006976,
+    "Nstar_ki": null,
+    "provenance": "fitted_CP1_local_explanation",
+    "limitation": "no block replay, residual, CP, communication or topology validation",
+    "crossover_in_single_sequence_calibration_range": false
+  },
+  {
+    "gqa_layers": 4,
+    "gdn_layers": 0,
+    "A_ms_per_ki2": 0.2218039582664102,
+    "B_ms_per_ki": 9.987902092734318,
+    "Nstar_ki": 45.030314926741674,
+    "provenance": "fitted_CP1_local_explanation",
+    "limitation": "no block replay, residual, CP, communication or topology validation",
+    "crossover_in_single_sequence_calibration_range": true
+  },
+  {
+    "gqa_layers": 1,
+    "gdn_layers": 3,
+    "A_ms_per_ki2": 0.05545098956660255,
+    "B_ms_per_ki": 10.106780354385673,
+    "Nstar_ki": 182.26510353338875,
+    "provenance": "fitted_CP1_local_explanation",
+    "limitation": "no block replay, residual, CP, communication or topology validation",
+    "crossover_in_single_sequence_calibration_range": false
+  },
+  {
+    "gqa_layers": 2,
+    "gdn_layers": 6,
+    "A_ms_per_ki2": 0.1109019791332051,
+    "B_ms_per_ki": 20.213560708771347,
+    "Nstar_ki": 182.26510353338875,
+    "provenance": "fitted_CP1_local_explanation",
+    "limitation": "no block replay, residual, CP, communication or topology validation",
+    "crossover_in_single_sequence_calibration_range": false
+  }
+]

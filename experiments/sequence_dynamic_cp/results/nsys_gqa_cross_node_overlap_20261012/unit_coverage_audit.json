@@ -1,0 +1,33 @@
+{
+  "passed": true,
+  "checks": [
+    {
+      "cp": 16,
+      "rank": 0,
+      "middle_units": 14,
+      "core_spans_nonoverlapping": true,
+      "core_sum_within_unit_GPU_event": true,
+      "middle_bucket_dispatches": 0,
+      "step_finite": true
+    },
+    {
+      "cp": 16,
+      "rank": 8,
+      "middle_units": 14,
+      "core_spans_nonoverlapping": true,
+      "core_sum_within_unit_GPU_event": true,
+      "middle_bucket_dispatches": 0,
+      "step_finite": true
+    },
+    {
+      "cp": 8,
+      "rank": 0,
+      "middle_units": 14,
+      "core_spans_nonoverlapping": true,
+      "core_sum_within_unit_GPU_event": true,
+      "middle_bucket_dispatches": 0,
+      "step_finite": true
+    }
+  ],
+  "limitation": "Expected ring counts and interval accounting pass; original nsys missing-event warnings remain and prevent a claim of perfectly complete tracing."
+}

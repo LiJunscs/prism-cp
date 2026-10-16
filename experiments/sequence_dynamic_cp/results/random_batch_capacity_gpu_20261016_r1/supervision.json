@@ -1,0 +1,45 @@
+{
+  "actual_gpu_launches": 6,
+  "initialization_failed_launches": 1,
+  "prelaunch_infrastructure_failures": 1,
+  "gpu_retries": 1,
+  "complete_updates": 17,
+  "arms": {
+    "L224_S4_N_K24": {
+      "status": "complete",
+      "complete_updates": 5
+    },
+    "L224_S4_N_K14": {
+      "status": "complete",
+      "complete_updates": 5
+    },
+    "L224_S4_N_K28": {
+      "status": "actual_memory_guard_rejected",
+      "complete_updates": 2
+    },
+    "L224_S4_joint": {
+      "status": "complete",
+      "complete_updates": 5
+    },
+    "irregular_S8_N_K24": {
+      "status": "no_complete_update_records",
+      "complete_updates": 0
+    },
+    "irregular_S8_joint": {
+      "status": "not_started",
+      "complete_updates": 0
+    },
+    "L192_S4_N_K24": {
+      "status": "not_started",
+      "complete_updates": 0
+    },
+    "L192_S4_joint": {
+      "status": "not_started",
+      "complete_updates": 0
+    }
+  },
+  "matrix_paused": true,
+  "pause_reason": "New CUDA OOM in irregular N24 FlashAttention forward before first complete update; error shows another process using 27.23 GiB on affected GPU",
+  "affected_arm": "irregular_S8_N_K24",
+  "owned_launcher_finished": true
+}

@@ -1,0 +1,90 @@
+{
+  "native": [
+    {
+      "path": "results/native_n_remeasure_20261016/plans/1136_samples_32Mi.json",
+      "capacity_tokens": 16384,
+      "original_ast_matches": true,
+      "source_microbatches": 128,
+      "run_config_checked": true,
+      "executor": "DUPC",
+      "joint_adapter": false,
+      "generation_execution_capacity_matches": true
+    },
+    {
+      "path": "results/native_n_remeasure_20261016/plans/568_samples_16Mi.json",
+      "capacity_tokens": 16384,
+      "original_ast_matches": true,
+      "source_microbatches": 64,
+      "run_config_checked": true,
+      "executor": "DUPC",
+      "joint_adapter": false,
+      "generation_execution_capacity_matches": true
+    },
+    {
+      "path": "results/native_n_remeasure_20261016/plans/72_samples_2p25Mi.json",
+      "capacity_tokens": 16384,
+      "original_ast_matches": true,
+      "source_microbatches": 9,
+      "run_config_checked": true,
+      "executor": "DUPC",
+      "joint_adapter": false,
+      "generation_execution_capacity_matches": true
+    },
+    {
+      "path": "results/native_capacity_ablation_20261016_r1/plans/K24.json",
+      "capacity_tokens": 24576,
+      "original_ast_matches": true,
+      "source_microbatches": 8,
+      "run_config_checked": true,
+      "executor": "DUPC",
+      "joint_adapter": false,
+      "generation_execution_capacity_matches": true
+    },
+    {
+      "path": "results/native_capacity_ablation_20261016_r1/plans/K32.json",
+      "capacity_tokens": 32768,
+      "original_ast_matches": true,
+      "source_microbatches": 5,
+      "run_config_checked": true,
+      "executor": "DUPC",
+      "joint_adapter": false,
+      "generation_execution_capacity_matches": true
+    }
+  ],
+  "joint": [
+    {
+      "path": "results/joint_cp_two_20261015/plans/1136_samples_32Mi.json",
+      "gdn_internal_routes": 0,
+      "gqa_mlp_routes": 448,
+      "operator_boundary_routes": 336,
+      "model_io_routes": 224,
+      "scope": "nonidentity forward routes; backward uses inverse routes"
+    },
+    {
+      "path": "results/joint_cp_two_20261015/plans/568_samples_16Mi.json",
+      "gdn_internal_routes": 0,
+      "gqa_mlp_routes": 224,
+      "operator_boundary_routes": 171,
+      "model_io_routes": 113,
+      "scope": "nonidentity forward routes; backward uses inverse routes"
+    },
+    {
+      "path": "results/joint_cp_two_20261015/plans/72_samples_2p25Mi.json",
+      "gdn_internal_routes": 0,
+      "gqa_mlp_routes": 32,
+      "operator_boundary_routes": 27,
+      "model_io_routes": 17,
+      "scope": "nonidentity forward routes; backward uses inverse routes"
+    },
+    {
+      "path": "results/joint_cp_memory_validation_20261016_r2/plans/568_samples_16Mi.json",
+      "gdn_internal_routes": 0,
+      "gqa_mlp_routes": 224,
+      "operator_boundary_routes": 171,
+      "model_io_routes": 113,
+      "scope": "nonidentity forward routes; backward uses inverse routes"
+    }
+  ],
+  "native_scope": "Current local Megatron next_hdp_group_packing_aware, beta_tokens=0; frozen replay, not online planning",
+  "finding": "All GDN runs have zero internal routes; historical joint GQA MLP placement has additional routes"
+}

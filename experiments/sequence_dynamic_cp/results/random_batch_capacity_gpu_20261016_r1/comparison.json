@@ -1,0 +1,611 @@
+{
+  "arms": {
+    "L224_S4_N_K24": {
+      "source": "/workspace/repos/prism-cp/experiments/sequence_dynamic_cp/results/random_batch_capacity_gpu_20261016_r1/runs/L224_S4_N_K24_resume1/records",
+      "records": 80,
+      "steps_by_rank": {
+        "0": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "1": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "2": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "3": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "4": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "5": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "6": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "7": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "8": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "9": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "10": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "11": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "12": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "13": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "14": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "15": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ]
+      },
+      "peak_bytes": {
+        "peak_allocated": 61221889024,
+        "peak_reserved": 65892515840,
+        "memory_required_bytes": 68099204096
+      },
+      "peak_GiB": {
+        "peak_allocated": 57.017327308654785,
+        "peak_reserved": 61.3671875,
+        "memory_required_bytes": 63.42232608795166
+      },
+      "minimum_memory_budget_bytes": 76427689984,
+      "checks": {
+        "input_tokens": true,
+        "effective_loss_tokens": true,
+        "full_update": true,
+        "finite": true,
+        "parameters_synchronized": true,
+        "forward_backward": true,
+        "physical_memory": true
+      },
+      "status": "complete",
+      "measured_steps": [
+        3,
+        4,
+        5
+      ],
+      "rankmax_seconds": [
+        17.96329683251679,
+        17.99020118638873,
+        17.90960024110973
+      ],
+      "mean_seconds": 17.95436608667175,
+      "complete_updates": 5,
+      "launcher": {
+        "returncode": 0,
+        "retries": 1
+      }
+    },
+    "L224_S4_N_K14": {
+      "source": "/workspace/repos/prism-cp/experiments/sequence_dynamic_cp/results/random_batch_capacity_gpu_20261016_r1/runs/L224_S4_N_K14/records",
+      "records": 80,
+      "steps_by_rank": {
+        "0": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "1": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "2": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "3": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "4": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "5": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "6": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "7": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "8": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "9": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "10": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "11": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "12": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "13": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "14": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "15": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ]
+      },
+      "peak_bytes": {
+        "peak_allocated": 42059520000,
+        "peak_reserved": 45841645568,
+        "memory_required_bytes": 49888319488
+      },
+      "peak_GiB": {
+        "peak_allocated": 39.17098045349121,
+        "peak_reserved": 42.693359375,
+        "memory_required_bytes": 46.46211814880371
+      },
+      "minimum_memory_budget_bytes": 76427689984,
+      "checks": {
+        "input_tokens": true,
+        "effective_loss_tokens": true,
+        "full_update": true,
+        "finite": true,
+        "parameters_synchronized": true,
+        "forward_backward": true,
+        "physical_memory": true
+      },
+      "status": "complete",
+      "measured_steps": [
+        3,
+        4,
+        5
+      ],
+      "rankmax_seconds": [
+        16.087065054103732,
+        16.09465796686709,
+        16.086558889597654
+      ],
+      "mean_seconds": 16.089427303522825,
+      "complete_updates": 5,
+      "launcher": {
+        "returncode": 0,
+        "retries": 0
+      }
+    },
+    "L224_S4_N_K28": {
+      "source": "/workspace/repos/prism-cp/experiments/sequence_dynamic_cp/results/random_batch_capacity_gpu_20261016_r1/runs/L224_S4_N_K28/records",
+      "records": 32,
+      "steps_by_rank": {
+        "0": [
+          1,
+          2
+        ],
+        "1": [
+          1,
+          2
+        ],
+        "2": [
+          1,
+          2
+        ],
+        "3": [
+          1,
+          2
+        ],
+        "4": [
+          1,
+          2
+        ],
+        "5": [
+          1,
+          2
+        ],
+        "6": [
+          1,
+          2
+        ],
+        "7": [
+          1,
+          2
+        ],
+        "8": [
+          1,
+          2
+        ],
+        "9": [
+          1,
+          2
+        ],
+        "10": [
+          1,
+          2
+        ],
+        "11": [
+          1,
+          2
+        ],
+        "12": [
+          1,
+          2
+        ],
+        "13": [
+          1,
+          2
+        ],
+        "14": [
+          1,
+          2
+        ],
+        "15": [
+          1,
+          2
+        ]
+      },
+      "peak_bytes": {
+        "peak_allocated": 68852946944,
+        "peak_reserved": 71435288576,
+        "memory_required_bytes": 77619173376
+      },
+      "peak_GiB": {
+        "peak_allocated": 64.12430381774902,
+        "peak_reserved": 66.529296875,
+        "memory_required_bytes": 72.28848838806152
+      },
+      "minimum_memory_budget_bytes": 76427689984,
+      "checks": {
+        "input_tokens": true,
+        "effective_loss_tokens": true,
+        "full_update": true,
+        "finite": true,
+        "parameters_synchronized": true,
+        "forward_backward": true,
+        "physical_memory": false
+      },
+      "status": "actual_memory_guard_rejected",
+      "first_rejected_step": 2,
+      "complete_updates": 2,
+      "launcher": {
+        "returncode": 1,
+        "retries": 0
+      }
+    },
+    "L224_S4_joint": {
+      "source": "/workspace/repos/prism-cp/experiments/sequence_dynamic_cp/results/random_batch_capacity_gpu_20261016_r1/runs/L224_S4_joint/records",
+      "records": 80,
+      "steps_by_rank": {
+        "0": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "1": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "2": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "3": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "4": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "5": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "6": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "7": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "8": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "9": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "10": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "11": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "12": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "13": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "14": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "15": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ]
+      },
+      "peak_bytes": {
+        "peak_allocated": 43477894656,
+        "peak_reserved": 48339353600,
+        "memory_required_bytes": 52135882752
+      },
+      "peak_GiB": {
+        "peak_allocated": 40.491944789886475,
+        "peak_reserved": 45.01953125,
+        "memory_required_bytes": 48.55532455444336
+      },
+      "minimum_memory_budget_bytes": 76427689984,
+      "checks": {
+        "input_tokens": true,
+        "effective_loss_tokens": true,
+        "full_update": true,
+        "finite": true,
+        "parameters_synchronized": true,
+        "forward_backward": true,
+        "physical_memory": true
+      },
+      "status": "complete",
+      "measured_steps": [
+        3,
+        4,
+        5
+      ],
+      "rankmax_seconds": [
+        12.468969851732254,
+        12.421785555779934,
+        12.441487023606896
+      ],
+      "mean_seconds": 12.444080810373029,
+      "complete_updates": 5,
+      "launcher": {
+        "returncode": 0,
+        "retries": 0
+      }
+    },
+    "irregular_S8_N_K24": {
+      "source": "/workspace/repos/prism-cp/experiments/sequence_dynamic_cp/results/random_batch_capacity_gpu_20261016_r1/runs/irregular_S8_N_K24/records",
+      "records": 0,
+      "steps_by_rank": {
+        "0": [],
+        "1": [],
+        "2": [],
+        "3": [],
+        "4": [],
+        "5": [],
+        "6": [],
+        "7": [],
+        "8": [],
+        "9": [],
+        "10": [],
+        "11": [],
+        "12": [],
+        "13": [],
+        "14": [],
+        "15": []
+      },
+      "status": "no_complete_update_records",
+      "complete_updates": 0,
+      "launcher": {
+        "returncode": 1,
+        "retries": 0
+      }
+    },
+    "irregular_S8_joint": {
+      "status": "not_started",
+      "complete_updates": 0
+    },
+    "L192_S4_N_K24": {
+      "status": "not_started",
+      "complete_updates": 0
+    },
+    "L192_S4_joint": {
+      "status": "not_started",
+      "complete_updates": 0
+    }
+  },
+  "variable_N_reuse": {
+    "L224_S4": "L224_S4_N_K14",
+    "irregular_S8": "irregular_S8_N_K24",
+    "L192_S4": "L192_S4_N_K24"
+  }
+}

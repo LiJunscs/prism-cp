@@ -1,0 +1,37 @@
+{
+  "case": "568_samples_16Mi",
+  "world": 16,
+  "launches": 1,
+  "updates": 5,
+  "warmup": 2,
+  "measured_steps": [
+    3,
+    4,
+    5
+  ],
+  "memory_selection": {
+    "policy": "min_peak_then_time_within_relative_update_tolerance",
+    "relative_time_tolerance": 0.001,
+    "original_predicted_update_ms": 142396.34803846737,
+    "selected_predicted_update_ms": 142396.54803846736,
+    "original_peak_bytes": 71533666576,
+    "selected_peak_bytes": 59093360912,
+    "original_microbatches": 62,
+    "selected_microbatches": 64,
+    "candidates_examined": 6,
+    "changed": true,
+    "repacked_families": [
+      {
+        "sample_length": 4096,
+        "samples_per_rank": 4,
+        "tokens_per_rank": 16384
+      }
+    ],
+    "scope": "bounded homogeneous rank-resident CP1 repacking; distributed batches unchanged",
+    "global_optimality_certificate": false
+  },
+  "source": "/workspace/repos/prism-cp/experiments/sequence_dynamic_cp/results/joint_cp_two_20261015",
+  "controls": "reuse native_n_remeasure_20261016 and joint_cp_two_20261015; no reruns",
+  "constraints": "no workspace inspection, hashes, snapshots, profiling, extra GPU tests, retries or environment changes",
+  "training": "same model/content/HBM guard and full F/B + Adam; GDN stays contiguous"
+}

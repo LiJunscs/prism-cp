@@ -1,0 +1,64 @@
+/workspace/repos/Megatron-LM/megatron/training/utils/common_utils.py:441: UserWarning: Overriding default arguments for tokenizer_type:GPT2BPETokenizer with tokenizer_type:NullTokenizer
+  warnings.warn(message)
+/workspace/repos/Megatron-LM/megatron/training/arguments.py:1657: UserWarning: Dynamic CP enabled: dp_size * context_parallel_size=16 will be used as the maximum dynamic CP group size. Dynamic CP groups will range from min_dynamic_context_parallel_size=1 to 16.
+  warnings.warn(
+WARNING:megatron.core.rerun_state_machine:RerunStateMachine initialized in mode RerunMode.VALIDATE_RESULTS
+/workspace/envs/flagscale/lib/python3.12/site-packages/torch/distributed/distributed_c10d.py:4807: UserWarning: No device id is provided via `init_process_group` or `barrier `. Using the current device set by the user. 
+  warnings.warn(  # warn only once
+[rank0]:[W1016 15:45:59.747779479 ProcessGroupNCCL.cpp:5023] [PG ID 0 PG GUID 0 Rank 0]  using GPU 0 as device used by this process is currently unknown. This can potentially cause a hang if this rank to GPU mapping is incorrect. You can specify device_id in init_process_group() to force use of a particular device.
+[rank0]: Traceback (most recent call last):
+[rank0]:   File "/workspace/repos/Megatron-LM/pretrain_gpt.py", line 593, in <module>
+[rank0]:     pretrain(
+[rank0]:   File "/workspace/repos/Megatron-LM/megatron/training/training.py", line 1792, in pretrain
+[rank0]:     set_jit_fusion_options(tp_size=args.tensor_model_parallel_size)
+[rank0]:   File "/workspace/repos/Megatron-LM/megatron/training/initialize.py", line 495, in set_jit_fusion_options
+[rank0]:     _warmup_jit_function(tp_size=tp_size)
+[rank0]:   File "/workspace/repos/Megatron-LM/megatron/training/initialize.py", line 527, in _warmup_jit_function
+[rank0]:     output = bias_swiglu(input, bias)
+[rank0]:              ^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/workspace/envs/flagscale/lib/python3.12/site-packages/torch/_dynamo/eval_frame.py", line 736, in compile_wrapper
+[rank0]:     return fn(*args, **kwargs)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/workspace/repos/Megatron-LM/megatron/core/fusions/fused_bias_swiglu.py", line 29, in bias_swiglu
+[rank0]:     @jit_fuser
+[rank0]:   File "/workspace/envs/flagscale/lib/python3.12/site-packages/torch/_dynamo/eval_frame.py", line 929, in _fn
+[rank0]:     return fn(*args, **kwargs)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/workspace/envs/flagscale/lib/python3.12/site-packages/torch/_functorch/aot_autograd.py", line 1241, in forward
+[rank0]:     return compiled_fn(full_args)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/workspace/envs/flagscale/lib/python3.12/site-packages/torch/_functorch/_aot_autograd/runtime_wrappers.py", line 370, in runtime_wrapper
+[rank0]:     all_outs = call_func_at_runtime_with_args(
+[rank0]:                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/workspace/envs/flagscale/lib/python3.12/site-packages/torch/_functorch/_aot_autograd/utils.py", line 126, in call_func_at_runtime_with_args
+[rank0]:     out = normalize_as_list(f(args))
+[rank0]:                             ^^^^^^^
+[rank0]:   File "/workspace/envs/flagscale/lib/python3.12/site-packages/torch/_functorch/_aot_autograd/utils.py", line 100, in g
+[rank0]:     return f(*args)
+[rank0]:            ^^^^^^^^
+[rank0]:   File "/workspace/envs/flagscale/lib/python3.12/site-packages/torch/autograd/function.py", line 576, in apply
+[rank0]:     return super().apply(*args, **kwargs)  # type: ignore[misc]
+[rank0]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/workspace/envs/flagscale/lib/python3.12/site-packages/torch/_functorch/_aot_autograd/runtime_wrappers.py", line 2074, in forward
+[rank0]:     fw_outs = call_func_at_runtime_with_args(
+[rank0]:               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/workspace/envs/flagscale/lib/python3.12/site-packages/torch/_functorch/_aot_autograd/utils.py", line 126, in call_func_at_runtime_with_args
+[rank0]:     out = normalize_as_list(f(args))
+[rank0]:                             ^^^^^^^
+[rank0]:   File "/workspace/envs/flagscale/lib/python3.12/site-packages/torch/_functorch/_aot_autograd/runtime_wrappers.py", line 556, in wrapper
+[rank0]:     return compiled_fn(runtime_args)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/workspace/envs/flagscale/lib/python3.12/site-packages/torch/_functorch/_aot_autograd/runtime_wrappers.py", line 750, in inner_fn
+[rank0]:     outs = compiled_fn(args)
+[rank0]:            ^^^^^^^^^^^^^^^^^
+[rank0]:   File "/workspace/envs/flagscale/lib/python3.12/site-packages/torch/_inductor/output_code.py", line 584, in __call__
+[rank0]:     return self.current_callable(inputs)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/workspace/envs/flagscale/lib/python3.12/site-packages/torch/_inductor/utils.py", line 2716, in run
+[rank0]:     out = model(new_inputs)
+[rank0]:           ^^^^^^^^^^^^^^^^^
+[rank0]:   File "/tmp/torchinductor_root/lv/clvdsduhnkjlyvt6cuiv3zn36wehfwhvqpxadzfaeotbaemm4o2h.py", line 97, in call
+[rank0]:     buf0 = empty_strided_cuda((24576, 1, 8192), (8192, 8192, 1), torch.bfloat16)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]: torch.OutOfMemoryError: CUDA out of memory. Tried to allocate 384.00 MiB. GPU 0 has a total capacity of 79.18 GiB of which 355.31 MiB is free. Process 4078762 has 74.84 GiB memory in use. Process 4132391 has 3.90 GiB memory in use. Of the allocated memory 768.03 MiB is allocated by PyTorch, and 1.97 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://pytorch.org/docs/stable/notes/cuda.html#environment-variables)
+[rank0]:[W1016 15:46:03.101539078 ProcessGroupNCCL.cpp:1538] Warning: WARNING: destroy_process_group() was not called before program exit, which can leak resources. For more info, please see https://pytorch.org/docs/stable/distributed.html#shutdown (function operator())

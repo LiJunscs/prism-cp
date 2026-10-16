@@ -1,0 +1,210 @@
+{
+  "gdngqa_gpt": {
+    "D": "F",
+    "D_place": "F",
+    "single_native": true,
+    "guard_equivalence": true,
+    "proof": "Every native cap above K16 is rejected even under zero live allocation with observed nondecreasing external floor. Full common pool uniqueness is checked separately on all 14 frozen updates; D and D_place normalize to the identical F branch before timing.",
+    "rank_bounds": [
+      {
+        "cap": 24576,
+        "always_budget_rejected": true,
+        "minimum_rank_headroom": -5283650420
+      },
+      {
+        "cap": 24704,
+        "always_budget_rejected": true,
+        "minimum_rank_headroom": -5525165374
+      },
+      {
+        "cap": 24832,
+        "always_budget_rejected": true,
+        "minimum_rank_headroom": -5586233070
+      },
+      {
+        "cap": 24576,
+        "always_budget_rejected": true,
+        "minimum_rank_headroom": -5283650420
+      },
+      {
+        "cap": 24704,
+        "always_budget_rejected": true,
+        "minimum_rank_headroom": -5525165374
+      },
+      {
+        "cap": 24832,
+        "always_budget_rejected": true,
+        "minimum_rank_headroom": -5586233070
+      },
+      {
+        "cap": 24576,
+        "always_budget_rejected": true,
+        "minimum_rank_headroom": -5283650420
+      },
+      {
+        "cap": 24704,
+        "always_budget_rejected": true,
+        "minimum_rank_headroom": -5525165374
+      },
+      {
+        "cap": 24832,
+        "always_budget_rejected": true,
+        "minimum_rank_headroom": -5525165374
+      },
+      {
+        "cap": 24576,
+        "always_budget_rejected": true,
+        "minimum_rank_headroom": -5283650420
+      },
+      {
+        "cap": 24704,
+        "always_budget_rejected": true,
+        "minimum_rank_headroom": -5525165374
+      },
+      {
+        "cap": 24832,
+        "always_budget_rejected": true,
+        "minimum_rank_headroom": -5525165374
+      },
+      {
+        "cap": 24576,
+        "always_budget_rejected": true,
+        "minimum_rank_headroom": -5283650420
+      },
+      {
+        "cap": 24704,
+        "always_budget_rejected": true,
+        "minimum_rank_headroom": -5525165374
+      },
+      {
+        "cap": 24832,
+        "always_budget_rejected": true,
+        "minimum_rank_headroom": -5586233070
+      },
+      {
+        "cap": 24576,
+        "always_budget_rejected": true,
+        "minimum_rank_headroom": -5283650420
+      },
+      {
+        "cap": 24704,
+        "always_budget_rejected": true,
+        "minimum_rank_headroom": -5525165374
+      },
+      {
+        "cap": 24832,
+        "always_budget_rejected": true,
+        "minimum_rank_headroom": -5525165374
+      },
+      {
+        "cap": 24576,
+        "always_budget_rejected": true,
+        "minimum_rank_headroom": -5283650420
+      },
+      {
+        "cap": 24704,
+        "always_budget_rejected": true,
+        "minimum_rank_headroom": -5525165374
+      },
+      {
+        "cap": 24832,
+        "always_budget_rejected": true,
+        "minimum_rank_headroom": -5525165374
+      },
+      {
+        "cap": 24576,
+        "always_budget_rejected": true,
+        "minimum_rank_headroom": -5283650420
+      },
+      {
+        "cap": 24704,
+        "always_budget_rejected": true,
+        "minimum_rank_headroom": -5525165374
+      },
+      {
+        "cap": 24832,
+        "always_budget_rejected": true,
+        "minimum_rank_headroom": -5525165374
+      },
+      {
+        "cap": 24576,
+        "always_budget_rejected": true,
+        "minimum_rank_headroom": -5283650420
+      },
+      {
+        "cap": 24704,
+        "always_budget_rejected": true,
+        "minimum_rank_headroom": -5525165374
+      },
+      {
+        "cap": 24832,
+        "always_budget_rejected": true,
+        "minimum_rank_headroom": -5769436160
+      },
+      {
+        "cap": 24576,
+        "always_budget_rejected": true,
+        "minimum_rank_headroom": -5283650420
+      },
+      {
+        "cap": 24704,
+        "always_budget_rejected": true,
+        "minimum_rank_headroom": -5464097677
+      },
+      {
+        "cap": 24832,
+        "always_budget_rejected": true,
+        "minimum_rank_headroom": -5769436160
+      },
+      {
+        "cap": 24576,
+        "always_budget_rejected": true,
+        "minimum_rank_headroom": -5283650420
+      },
+      {
+        "cap": 24704,
+        "always_budget_rejected": true,
+        "minimum_rank_headroom": -5525165374
+      },
+      {
+        "cap": 24832,
+        "always_budget_rejected": true,
+        "minimum_rank_headroom": -5769436160
+      },
+      {
+        "cap": 24576,
+        "always_budget_rejected": true,
+        "minimum_rank_headroom": -5283650420
+      },
+      {
+        "cap": 24704,
+        "always_budget_rejected": true,
+        "minimum_rank_headroom": -5525165374
+      },
+      {
+        "cap": 24832,
+        "always_budget_rejected": true,
+        "minimum_rank_headroom": -5525165374
+      },
+      {
+        "cap": 24576,
+        "always_budget_rejected": true,
+        "minimum_rank_headroom": -5283650420
+      },
+      {
+        "cap": 24704,
+        "always_budget_rejected": true,
+        "minimum_rank_headroom": -5283650420
+      },
+      {
+        "cap": 24832,
+        "always_budget_rejected": true,
+        "minimum_rank_headroom": -5283650420
+      }
+    ]
+  },
+  "gqa_gpt": {
+    "D": "F",
+    "proof": "D normalized to the identical F branch throughout approved max-global-length domain; same guard, fallback, sentinels and controller operations"
+  }
+}

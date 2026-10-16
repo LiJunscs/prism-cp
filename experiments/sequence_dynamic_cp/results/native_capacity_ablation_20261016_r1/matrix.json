@@ -1,0 +1,44 @@
+{
+  "case": "72_samples_2p25Mi",
+  "world": 16,
+  "jobs": [
+    {
+      "capacity_Ki": 32,
+      "microbatches": 5,
+      "long_sample_cp_counts": {
+        "8": 8
+      },
+      "iterations": 5,
+      "warmup": 2
+    },
+    {
+      "capacity_Ki": 24,
+      "microbatches": 8,
+      "long_sample_cp_counts": {
+        "16": 8
+      },
+      "iterations": 5,
+      "warmup": 2
+    }
+  ],
+  "maximum_new_launches": 2,
+  "maximum_new_updates": 10,
+  "measured_steps": [
+    3,
+    4,
+    5
+  ],
+  "launch_order": [
+    32,
+    24
+  ],
+  "retries": 0,
+  "early_stop": "After complete K32: stop if alpha2 accepted and its slowest measured step is no slower than the fastest reused joint step. Otherwise run K24 only on parent instruction. Infrastructure/contract failure stops the matrix; actual memory guard rejection permits K24.",
+  "reference": "same-input original native N K16 for all alpha2 decisions",
+  "controls": "existing native N K16 and unchanged 72-sample joint plan; no reruns",
+  "scope": "finite-capacity per-input ablation, not an online varying-input execution",
+  "capacity_policy": "unchanged native n^2/CP greedy/fill; only K varies; no joint adapter",
+  "training": "8 layers GGG*GGG*, TP=PP=1, full dense MLP/head/loss/F+B/finalize/clip/Adam/parameter sync; original content and masks; GDN including MLP contiguous",
+  "constraints": "no workspace/source inventory, hashes, snapshots, environment checks, GPU preflight, profiling, additional numerical or GPU tests; keep actual physical memory guard",
+  "model_memory_prediction": "K32 may exceed the analytic envelope; test actual training once, never relax runtime guard"
+}

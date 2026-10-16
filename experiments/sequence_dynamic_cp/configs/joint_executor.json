@@ -1,0 +1,17 @@
+{
+  "mode": "joint",
+  "model_contract": {
+    "hidden_size": 4096,
+    "ffn_hidden_size": 16384,
+    "num_attention_heads": 32,
+    "num_query_groups": 8,
+    "kv_channels": 128,
+    "linear_num_key_heads": 16,
+    "linear_num_value_heads": 16,
+    "linear_key_head_dim": 128,
+    "linear_value_head_dim": 128,
+    "linear_conv_kernel_dim": 4
+  },
+  "vocab_size": 32768,
+  "model_provenance": "original shared catalogue; device total observed in diag r3; external rounded up from 6.692 GiB to 7 GiB; original static estimate and 2 GiB margin retained"
+}

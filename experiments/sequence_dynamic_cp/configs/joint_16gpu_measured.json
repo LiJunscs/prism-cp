@@ -1,0 +1,119 @@
+{
+  "hidden": 4096,
+  "ffn": 16384,
+  "vocab": 32768,
+  "q_heads": 32,
+  "kv_heads": 8,
+  "head_dim": 128,
+  "gdn_heads": 16,
+  "gdn_dim": 128,
+  "device_bytes": 85017624576,
+  "external_bytes": 7516192768,
+  "margin_bytes": 2147483648,
+  "static_bytes": null,
+  "compute_tflops": 300.0,
+  "intra_gbps": 300.0,
+  "inter_gbps": 25.0,
+  "memory_gbps": 1500.0,
+  "ranks_per_node": 8,
+  "latency_ms": 0.01,
+  "microbatch_ms": 0.1,
+  "update_ms": 1.0,
+  "provenance": "original shared catalogue; device total observed in diag r3; external rounded up from 6.692 GiB to 7 GiB; original static estimate and 2 GiB margin retained",
+  "cp_response": {
+    "schema": "joint_cp_response_v1",
+    "name": "joint_paired_linear",
+    "fits": {
+      "GQA": {
+        "cp1_coefficients": [
+          0.04777970297020963,
+          0.4200801987446764,
+          0.6960624139988221
+        ],
+        "parameters": {
+          "2": {
+            "quadratic_fraction": 0.01280041147474874,
+            "token_fraction": 0.0,
+            "fixed_ms": 1.537012439267796,
+            "observations": 12
+          },
+          "4": {
+            "quadratic_fraction": 0.04575287798152511,
+            "token_fraction": 0.0,
+            "fixed_ms": 3.5341634332986462,
+            "observations": 12
+          },
+          "8": {
+            "quadratic_fraction": 0.04351159726638957,
+            "token_fraction": 0.0,
+            "fixed_ms": 7.162211227144046,
+            "observations": 12
+          }
+        },
+        "sequence_domain_ki": [
+          4.0,
+          512.0
+        ],
+        "fit_regime": "joint"
+      },
+      "GDN": {
+        "cp1_coefficients": [
+          1.2930731548234051,
+          0.6065618559569561
+        ],
+        "parameters": {
+          "2": {
+            "quadratic_fraction": 0.0,
+            "token_fraction": 0.40340016989875926,
+            "fixed_ms": 2.023948355697146,
+            "observations": 11
+          },
+          "4": {
+            "quadratic_fraction": 0.0,
+            "token_fraction": 0.504507128723902,
+            "fixed_ms": 3.737336584701457,
+            "observations": 11
+          },
+          "8": {
+            "quadratic_fraction": 0.0,
+            "token_fraction": 0.6462929329966567,
+            "fixed_ms": 5.0271055646474085,
+            "observations": 11
+          }
+        },
+        "sequence_domain_ki": [
+          4.0,
+          256.0
+        ],
+        "fit_regime": "joint"
+      }
+    },
+    "cp16_policy": "paired_linear",
+    "paired_anchors": [
+      {
+        "length": 65536,
+        "ratio": 4.651717322794636,
+        "cp8_ms": 39.7520809173584,
+        "cp16_ms": 184.91544342041016
+      },
+      {
+        "length": 262144,
+        "ratio": 1.5212880987969595,
+        "cp8_ms": 468.3529815673828,
+        "cp16_ms": 712.4998168945312
+      }
+    ],
+    "source": "results/historical_cp_response_20261012/profiles/joint.json",
+    "paired_source": "results/cross_node_cp_evidence_20261012/paired_response.csv",
+    "scope": "Effective node-local operator residual including communication; transferred prior, not current kernel calibration",
+    "gdn_transfer": "Historical 32 heads and unrecorded CP implementation versus current 16-head chunkwise; sensitivity only",
+    "packing_extrapolation": "Q=sum individual squares, L=sum tokens; one residual intercept per packed operator call; historical B<=CP, no varlen calibration",
+    "cp1_policy": "retain current model FLOP coefficients; no historical absolute CP1 time transfer",
+    "cp16_gdn_policy": "CP8 prior plus nonnegative analytic inter-minus-intra communication; unmeasured",
+    "cp16_gqa_policy": "paired 64/256Ki B1 ratios; packed extension is unvalidated",
+    "cp32_policy": null,
+    "gdn32_multiplier": 1.0,
+    "cp32_scope": "No CP32 measurements. GQA residual hypothesis from CP16; GDN CP8 fractions plus modeled topology, times stated sensitivity multiplier. Four 8-GPU nodes; link/route model unvalidated.",
+    "accounting": "replace calibrated operator communication and latency; retain layout traffic and memory"
+  }
+}

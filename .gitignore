@@ -1,8 +1,47 @@
 .vscode/
 __pycache__/
+.pytest_cache/
 .codex/
 *.sh
+!scripts/run_manual_gdn_cp_case.sh
 ppt_output/
 reference/
 agent_run/
 figures/
+
+# Generated training/profiling material is not source evidence.
+*.so
+*.sqlite
+*.sqlite-*
+*.nsys-rep
+*.qdrep
+*.snapshot
+*.sha256
+*.pt
+*.pth
+*.log
+!failure.log
+*.jsonl
+/experiments/sequence_dynamic_cp/results/**/jobs/
+/experiments/sequence_dynamic_cp/results/**/ssh/
+/experiments/sequence_dynamic_cp/results/**/rank_logs_node*/
+/experiments/sequence_dynamic_cp/results/**/training/
+/experiments/sequence_dynamic_cp/results/**/sources/
+/experiments/sequence_dynamic_cp/results/**/buckets_rank*.json*
+/experiments/sequence_dynamic_cp/results/**/model_inventory*.json
+/experiments/sequence_dynamic_cp/results/**/mixed_execution.json*
+# Choose and compact new results explicitly before adding them.
+/experiments/sequence_dynamic_cp/results/h100_*/
+
+# Override the old local .git/info/exclude rule that ignored all scripts.
+!/scripts/
+/scripts/*
+!/scripts/run_manual_gdn_cp_case.sh
+!/scripts/torchrun_launcher.py
+
+# Historical scalability measurements are required evidence, even without imports.
+!/analysis/
+/analysis/*
+!/analysis/README.md
+!/analysis/gdn_csa_hca_scaling.csv
+!/analysis/csa_hca(csa128)_scaling.csv

@@ -1,0 +1,315 @@
+{
+  "status": "completed",
+  "case": "72_samples_2p25Mi",
+  "budget": {
+    "actual_gpu_launches": 2,
+    "complete_updates": 6,
+    "physical_admitted_updates": 5,
+    "guard_rejected_updates": 1,
+    "new_rank_update_records": 96,
+    "gpu_retries": 0,
+    "extra_gpu_tests": 0
+  },
+  "treatments": {
+    "K32": {
+      "records": 16,
+      "complete_updates": 1,
+      "expected_microbatches": 5,
+      "per_rank_peak_bytes": [
+        {
+          "rank": 0,
+          "records": 1,
+          "peak_allocated": 74742883840,
+          "peak_reserved": 77263273984,
+          "memory_required_bytes": 82517157376,
+          "budget_bytes": 76427689984
+        },
+        {
+          "rank": 1,
+          "records": 1,
+          "peak_allocated": 74745330176,
+          "peak_reserved": 77464600576,
+          "memory_required_bytes": 82553158144,
+          "budget_bytes": 76427689984
+        },
+        {
+          "rank": 2,
+          "records": 1,
+          "peak_allocated": 74743075328,
+          "peak_reserved": 77397491712,
+          "memory_required_bytes": 82517348864,
+          "budget_bytes": 76427689984
+        },
+        {
+          "rank": 3,
+          "records": 1,
+          "peak_allocated": 74743859200,
+          "peak_reserved": 77498155008,
+          "memory_required_bytes": 82551687168,
+          "budget_bytes": 76427689984
+        },
+        {
+          "rank": 4,
+          "records": 1,
+          "peak_allocated": 75280208384,
+          "peak_reserved": 78202798080,
+          "memory_required_bytes": 83054481920,
+          "budget_bytes": 76427689984
+        },
+        {
+          "rank": 5,
+          "records": 1,
+          "peak_allocated": 75280208384,
+          "peak_reserved": 78337015808,
+          "memory_required_bytes": 83088036352,
+          "budget_bytes": 76427689984
+        },
+        {
+          "rank": 6,
+          "records": 1,
+          "peak_allocated": 75284163072,
+          "peak_reserved": 78303461376,
+          "memory_required_bytes": 83058436608,
+          "budget_bytes": 76427689984
+        },
+        {
+          "rank": 7,
+          "records": 1,
+          "peak_allocated": 75280208384,
+          "peak_reserved": 78337015808,
+          "memory_required_bytes": 83088036352,
+          "budget_bytes": 76427689984
+        },
+        {
+          "rank": 8,
+          "records": 1,
+          "peak_allocated": 74742780416,
+          "peak_reserved": 77263273984,
+          "memory_required_bytes": 82550608384,
+          "budget_bytes": 76427689984
+        },
+        {
+          "rank": 9,
+          "records": 1,
+          "peak_allocated": 74743075328,
+          "peak_reserved": 77464600576,
+          "memory_required_bytes": 82517348864,
+          "budget_bytes": 76427689984
+        },
+        {
+          "rank": 10,
+          "records": 1,
+          "peak_allocated": 74743075328,
+          "peak_reserved": 77397491712,
+          "memory_required_bytes": 82550903296,
+          "budget_bytes": 76427689984
+        },
+        {
+          "rank": 11,
+          "records": 1,
+          "peak_allocated": 74743075328,
+          "peak_reserved": 77531709440,
+          "memory_required_bytes": 82517348864,
+          "budget_bytes": 76427689984
+        },
+        {
+          "rank": 12,
+          "records": 1,
+          "peak_allocated": 75280208384,
+          "peak_reserved": 78202798080,
+          "memory_required_bytes": 83088036352,
+          "budget_bytes": 76427689984
+        },
+        {
+          "rank": 13,
+          "records": 1,
+          "peak_allocated": 75280208384,
+          "peak_reserved": 78337015808,
+          "memory_required_bytes": 83054481920,
+          "budget_bytes": 76427689984
+        },
+        {
+          "rank": 14,
+          "records": 1,
+          "peak_allocated": 75280208384,
+          "peak_reserved": 78337015808,
+          "memory_required_bytes": 83088036352,
+          "budget_bytes": 76427689984
+        },
+        {
+          "rank": 15,
+          "records": 1,
+          "peak_allocated": 75280208384,
+          "peak_reserved": 78337015808,
+          "memory_required_bytes": 83054481920,
+          "budget_bytes": 76427689984
+        }
+      ],
+      "actual_native_configuration": true,
+      "training_contract_passed": true,
+      "all_ranks_physical_memory_admitted": false,
+      "returncode": 1,
+      "performance_estimate": null,
+      "failure_class": "all ranks rejected by unchanged physical guard after complete first update; not CUDA OOM",
+      "minimum_guard_excess_GiB": 5.671258449554443,
+      "maximum_guard_excess_GiB": 6.202930927276611
+    },
+    "K24": {
+      "records": 80,
+      "complete_updates": 5,
+      "expected_microbatches": 8,
+      "per_rank_peak_bytes": [
+        {
+          "rank": 0,
+          "records": 5,
+          "peak_allocated": 60838637056,
+          "peak_reserved": 66748153856,
+          "memory_required_bytes": 67400756736,
+          "budget_bytes": 76427689984
+        },
+        {
+          "rank": 1,
+          "records": 5,
+          "peak_allocated": 60843200000,
+          "peak_reserved": 66997714944,
+          "memory_required_bytes": 67719892480,
+          "budget_bytes": 76427689984
+        },
+        {
+          "rank": 2,
+          "records": 5,
+          "peak_allocated": 60845061632,
+          "peak_reserved": 66897051648,
+          "memory_required_bytes": 67688199680,
+          "budget_bytes": 76427689984
+        },
+        {
+          "rank": 3,
+          "records": 5,
+          "peak_allocated": 60844669952,
+          "peak_reserved": 66997714944,
+          "memory_required_bytes": 67721362432,
+          "budget_bytes": 76427689984
+        },
+        {
+          "rank": 4,
+          "records": 5,
+          "peak_allocated": 60845061632,
+          "peak_reserved": 67096281088,
+          "memory_required_bytes": 67688199680,
+          "budget_bytes": 76427689984
+        },
+        {
+          "rank": 5,
+          "records": 5,
+          "peak_allocated": 61247911424,
+          "peak_reserved": 67597500416,
+          "memory_required_bytes": 68124603904,
+          "budget_bytes": 76427689984
+        },
+        {
+          "rank": 6,
+          "records": 5,
+          "peak_allocated": 61251762688,
+          "peak_reserved": 67698163712,
+          "memory_required_bytes": 68094900736,
+          "budget_bytes": 76427689984
+        },
+        {
+          "rank": 7,
+          "records": 5,
+          "peak_allocated": 61247911424,
+          "peak_reserved": 67798827008,
+          "memory_required_bytes": 67843585536,
+          "budget_bytes": 76427689984
+        },
+        {
+          "rank": 8,
+          "records": 5,
+          "peak_allocated": 61247911424,
+          "peak_reserved": 67899490304,
+          "memory_required_bytes": 67843585536,
+          "budget_bytes": 76427689984
+        },
+        {
+          "rank": 9,
+          "records": 5,
+          "peak_allocated": 61247911424,
+          "peak_reserved": 67998056448,
+          "memory_required_bytes": 68091049472,
+          "budget_bytes": 76427689984
+        },
+        {
+          "rank": 10,
+          "records": 5,
+          "peak_allocated": 61248501248,
+          "peak_reserved": 68098719744,
+          "memory_required_bytes": 68125193728,
+          "budget_bytes": 76427689984
+        },
+        {
+          "rank": 11,
+          "records": 5,
+          "peak_allocated": 61146953216,
+          "peak_reserved": 68199383040,
+          "memory_required_bytes": 67990091264,
+          "budget_bytes": 76427689984
+        },
+        {
+          "rank": 12,
+          "records": 5,
+          "peak_allocated": 61146953216,
+          "peak_reserved": 68300046336,
+          "memory_required_bytes": 68023645696,
+          "budget_bytes": 76427689984
+        },
+        {
+          "rank": 13,
+          "records": 5,
+          "peak_allocated": 61146953216,
+          "peak_reserved": 68419584000,
+          "memory_required_bytes": 67990091264,
+          "budget_bytes": 76427689984
+        },
+        {
+          "rank": 14,
+          "records": 5,
+          "peak_allocated": 61146953216,
+          "peak_reserved": 68419584000,
+          "memory_required_bytes": 68023645696,
+          "budget_bytes": 76427689984
+        },
+        {
+          "rank": 15,
+          "records": 5,
+          "peak_allocated": 61146953216,
+          "peak_reserved": 68419584000,
+          "memory_required_bytes": 67709072896,
+          "budget_bytes": 76427689984
+        }
+      ],
+      "actual_native_configuration": true,
+      "training_contract_passed": true,
+      "all_ranks_physical_memory_admitted": true,
+      "returncode": 0,
+      "measured_rankmax_seconds": [
+        20.18484978750348,
+        20.138744238764048,
+        20.19323030859232
+      ],
+      "all_measured_steps_slower_than_reference": true
+    }
+  },
+  "metrics": {
+    "joint_time_reduction_pct": 19.415908401008252,
+    "joint_throughput_gain_pct": 24.093971918957745,
+    "joint_allocated_growth_pct": 3.3366602637826537,
+    "k24_time_increase_pct": 10.5158753484484
+  },
+  "conclusion": "Within tested K16/K24/K32, native K16 remains best with or without alpha2; the reused joint result retains its speed advantage. No online or global-optimum claim.",
+  "limitations": [
+    "finite K16/K24/K32 candidates, not a global capacity optimum",
+    "controls reused across different launch dates/windows",
+    "short fixed-input runs, not online planning or changing distributions"
+  ]
+}

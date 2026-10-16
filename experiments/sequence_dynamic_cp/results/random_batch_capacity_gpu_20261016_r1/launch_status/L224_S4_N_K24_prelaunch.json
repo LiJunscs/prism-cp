@@ -1,0 +1,6 @@
+{
+  "returncode": 255,
+  "actual_gpu_launches": 0,
+  "gpu_retries": 0,
+  "reason": "local sandbox blocked SSH sockets"
+}
