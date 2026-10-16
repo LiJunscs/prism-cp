@@ -12,8 +12,8 @@ from functools import lru_cache
 import math
 
 from .ir import Group, Layout, Microbatch, Plan, validate_layout, validate_plan
-from .model import Evaluator
-from .response import response_coverage
+from .model import Evaluator, resource_metrics
+from .response import H100_SCHEMA, response_coverage
 from .memory_selection import prefer_lower_memory
 
 
@@ -214,6 +214,12 @@ class _Search:
         mlps = tuple(dict.fromkeys(x.with_mode(mode) for x in candidates for mode in ("contiguous", "zigzag")))
         attention_candidates = [x for x in candidates if opt.max_attention_cp is None
                                 or all(len(g.ranks) <= opt.max_attention_cp for g in x.groups)]
+        if self.model.cp_response and self.model.cp_response.get("schema") == H100_SCHEMA:
+            # Attention CP is limited by this hardware profile's actual anchors.
+            # This does not restrict MLP placement or independent packing search.
+            max_measured_cp = max(map(int, self.model.cp_response["anchors"]["GQA"]["milliseconds"]))
+            attention_candidates = [x for x in attention_candidates
+                                    if all(len(g.ranks) <= max_measured_cp for g in x.groups)]
         states = [_State(0, ev.initial(x), ev.initial(x), x, x, ()) for x in candidates
                   if max(ev.initial(x)) <= self.model.budget]
         for symbol in self.pattern:
@@ -425,7 +431,7 @@ def solve(lengths, world, pattern, model, options=SearchOptions()):
                     microbatch_shapes_solved=len(search.cache),
                     beam_pruned=search.truncated,
                     domain="aligned dyadic groups; ascending sample order per pack; all ranks nonempty; no padding; fixed G/* kernel modes; independent MLP placement",
-                    objective="sum modeled complete F+B microbatch times plus one update/sync term; serialized stage envelope",
+                    objective="minimize allocated GPU-ms for fixed useful input work; fixed world makes this equivalent to sum complete F+B microbatch times plus update/sync; all allocated ranks and idle waits counted",
                     model_provenance=model.provenance, gpu_admitted=False)
     metadata["max_attention_cp"] = options.max_attention_cp
     if answer is None:
@@ -447,5 +453,6 @@ def solve(lengths, world, pattern, model, options=SearchOptions()):
         metadata["objective"] += "; bounded CP1 memory tie-break within declared time tolerance"
     return dict(metadata, status="optimal_in_declared_domain" if options.mode == "exact" else "best_found_no_optimality_certificate",
                 plan=plan.to_dict(), predicted_update_ms=recomputed,
+                resource_metrics=resource_metrics(lengths, world, pattern, model, recomputed),
                 cp_response_evidence=response_coverage(plan, lengths, model),
                 budget_bytes=model.budget, microbatch_evidence=evidence)

@@ -1,8 +1,8 @@
-"""Frozen profiling response transfer; no fitting to scheduler outcomes.
+"""Hardware-specific responses; no fitting to scheduler outcomes.
 
-Node-local residuals include communication. CP16 GQA optionally uses the two
-paired P-run ratios; GDN CP16 carries CP8 plus an analytic topology increment.
-CP1 FLOP coefficients, MLP, routing, and memory remain the caller's model.
+Legacy H800 residuals retain their original transfer policies. H100 uses separate
+full-module GQA/GDN anchors and explicitly declared work/CP extrapolations.
+Both include operator communication; MLP, routing and memory remain separate.
 """
 
 import csv
@@ -13,6 +13,45 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
+H100_SCHEMA = "h100_operator_anchors_v1"
+
+
+def operator_work(model, symbol, tokens, squares):
+    """Declared useful F+B FLOPs; excludes routing and implementation overhead."""
+    h, d = model.hidden, model.gdn_heads * model.gdn_dim
+    if symbol == "*":
+        return (6 * (h * (model.q_heads + 2 * model.kv_heads) * model.head_dim + h*h) * tokens
+                + 6 * model.q_heads * model.head_dim * squares)
+    if symbol == "G":
+        return 6 * (6*h*d + 4*model.gdn_heads*model.gdn_dim**2) * tokens
+    if symbol == "M":
+        return 18 * h * model.ffn * tokens
+    raise ValueError("Unknown operator")
+
+
+def validate_h100_response(profile, model):
+    shape = (model.hidden, model.q_heads, model.kv_heads, model.head_dim,
+             model.gdn_heads, model.gdn_dim, model.ranks_per_node)
+    if shape != (4096, 32, 8, 128, 16, 128, 8):
+        raise ValueError("H100 anchors require H4096/Q32/KV8/D128/GDN16x128 and 8 GPUs per node")
+    if profile.get("hardware") != "H100" or profile.get("anchor_tokens") != 262144:
+        raise ValueError("Unknown H100 anchor hardware or length")
+    if (profile.get("shape_policy") != "useful_work_scaling_unvalidated"
+            or profile.get("unmeasured_cp_policy") != "constant_cp8_per_gpu_efficiency"):
+        raise ValueError("H100 extrapolation must have an explicit supported policy")
+    anchors = profile.get("anchors", {})
+    if set(anchors) != {"GQA", "GDN"}:
+        raise ValueError("H100 requires separate GQA and GDN anchors")
+    domain = set(anchors["GQA"]["milliseconds"])
+    if domain not in ({"8", "16"}, {"8", "16", "32"}):
+        raise ValueError("H100 measured CP domain must be 8/16 or 8/16/32")
+    if "32" in domain and not profile.get("cp32_source"):
+        raise ValueError("H100 CP32 requires its independent measured source")
+    for anchor in anchors.values():
+        if set(anchor["milliseconds"]) != domain:
+            raise ValueError("H100 GQA/GDN measured CP domains must match")
+        if any(not math.isfinite(t) or t <= 0 for t in anchor["milliseconds"].values()):
+            raise ValueError("H100 anchor times must be finite and positive")
 
 
 def load_response(regime="joint", cp16="paired_linear", gdn=True, cp32=None, gdn32_multiplier=1.):
@@ -46,6 +85,9 @@ def load_response(regime="joint", cp16="paired_linear", gdn=True, cp32=None, gdn
 
 
 def validate_response(profile, model):
+    if profile.get("schema") == H100_SCHEMA:
+        validate_h100_response(profile, model)
+        return
     if profile.get("schema") != "joint_cp_response_v1":
         raise ValueError("Unknown CP response schema")
     if profile.get("cp16_policy") not in ("carry8", "paired_linear", "paired_quadratic"):
@@ -82,9 +124,10 @@ def validate_response(profile, model):
 
 class Response:
     def __init__(self, model):
+        self.model = model
         self.profile = model.cp_response
         self.anchor_fit = None
-        if self.profile is None:
+        if self.profile is None or self.profile.get("schema") == H100_SCHEMA:
             return
         if self.profile["cp16_policy"] != "carry8":
             p = self.profile["fits"]["GQA"]["parameters"]["8"]
@@ -108,9 +151,23 @@ class Response:
             self.anchor_fit = dict(power=power, slope=slope, fixed_ms=fixed, anchors=points)
 
     def cost(self, symbol, cp, linear_ms, quadratic_ms, communication_ms, local_communication_ms,
-             tokens, squares):
+             tokens, squares, cross_node=None):
         ideal = linear_ms + quadratic_ms
         kind = {"G": "GDN", "*": "GQA"}.get(symbol)
+        if self.profile is not None and self.profile.get("schema") == H100_SCHEMA:
+            if kind is None:
+                return ideal + communication_ms
+            anchor = self.profile["anchors"][kind]["milliseconds"]
+            if cp not in (1, 2, 4) and str(cp) not in anchor:
+                raise ValueError(f"H100 CP>{max(map(int, anchor))} requires new evidence or an explicit new hypothesis")
+            if cp <= 8 and cross_node:
+                raise ValueError("H100 CP<=8 anchor/extrapolation requires node-local groups")
+            milliseconds = anchor[str(cp)] if str(cp) in anchor else anchor["8"] * 8 / cp
+            n = self.profile["anchor_tokens"]
+            # Each anchor already contains the full module and its CP communication.
+            # Multiplying by useful-work ratio is a declared shape extrapolation,
+            # not a second fitted observation; no analytic communication is added.
+            return milliseconds * operator_work(self.model, symbol, tokens, squares) / operator_work(self.model, symbol, n, n*n)
         if self.profile is None or cp == 1 or kind not in self.profile["fits"]:
             return ideal + communication_ms
         if cp == 32:
@@ -146,6 +203,33 @@ def response_coverage(plan, lengths, model):
     """Counts are group calls across layers, not independent measured samples."""
     if model.cp_response is None:
         return dict(policy="analytic_unvalidated")
+    if model.cp_response.get("schema") == H100_SCHEMA:
+        counts = dict(anchor_domain_group_calls=0, shape_extrapolated_group_calls=0,
+                      cp_extrapolated_group_calls=0, packed_group_calls=0,
+                      cp16_gqa_calls=0, cp16_gdn_calls=0)
+        domain = tuple(map(int, model.cp_response["anchors"]["GQA"]["milliseconds"]))
+        if 32 in domain:
+            counts.update(cp32_gqa_calls=0, cp32_gdn_calls=0)
+        n = model.cp_response["anchor_tokens"]
+        for batch in plan.microbatches:
+            for symbol, (layout, _) in zip(plan.pattern, batch.layers):
+                for group in layout.groups:
+                    cp = len(group.ranks)
+                    at_shape = len(group.samples) == 1 and lengths[group.samples[0]] == n
+                    counts["anchor_domain_group_calls"] += at_shape and cp in domain
+                    counts["shape_extrapolated_group_calls"] += not at_shape
+                    counts["cp_extrapolated_group_calls"] += cp not in domain
+                    counts["packed_group_calls"] += len(group.samples) > 1
+                    counts["cp16_gdn_calls" if symbol == "G" else "cp16_gqa_calls"] += cp == 16
+                    if cp == 32:
+                        counts["cp32_gdn_calls" if symbol == "G" else "cp32_gqa_calls"] += 1
+        return dict(policy=model.cp_response["name"], hardware="H100", counts=counts,
+                    source=model.cp_response["source"], anchors=model.cp_response["anchors"],
+                    cp32_source=model.cp_response.get("cp32_source"),
+                    shape_policy=model.cp_response["shape_policy"],
+                    unmeasured_cp_policy=model.cp_response["unmeasured_cp_policy"],
+                    other_terms="MLP, head, routing, update and memory are uncalibrated analytic estimates",
+                    gpu_measured=False)
     counts = dict(calibrated_group_calls=0, packed_group_calls=0, outside_length_domain_calls=0,
                   cp16_gqa_calls=0, cp16_gdn_calls=0, cp32_gqa_calls=0, cp32_gdn_calls=0,
                   uncalibrated_gdn_calls=0)

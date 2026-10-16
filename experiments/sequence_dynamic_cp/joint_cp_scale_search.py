@@ -23,6 +23,7 @@ CASES = {
 }
 SCENARIOS = {
     "16gpu": (16, None, 1., None),
+    "32gpu_measured": (32, None, 1., None),
     "32gpu_cp16_only": (32, None, 1., 16),
     "32gpu_work_scaling": (32, "work_scaling", 1., None),
     "32gpu_carry_residual": (32, "carry_residual", 1., None),
@@ -32,13 +33,21 @@ SCENARIOS = {
 }
 
 
-def run(case, scenario, beam=32, layouts=12, max_states=4000000):
+def run(case, scenario, beam=32, layouts=12, max_states=4000000, hardware=None):
     count, long, short_count, short = CASES[case]
     values = [long]*count + [short]*short_count
     lengths = dict(enumerate(values))
     world, cp32, gdn32, cap = SCENARIOS[scenario]
-    model = Model(cp_response=load_response(cp32=cp32, gdn32_multiplier=gdn32),
-                  provenance="frozen CP<=16 response transfer; 32-GPU topology/CP32 hypothetical when used; analytic CP1/storage/routes")
+    if hardware == "H100":
+        if cp32 is not None or gdn32 != 1.:
+            raise ValueError("H100 uses measured CP32; use 16gpu, 32gpu_measured or 32gpu_cp16_only")
+        filename = f"joint_{32 if world > 16 else 16}gpu_h100.json"
+        model = Model(**json.loads((Path(__file__).resolve().parent / "configs" / filename).read_text()))
+    else:
+        if scenario == "32gpu_measured":
+            raise ValueError("Measured CP32 scenario currently requires H100")
+        model = Model(cp_response=load_response(cp32=cp32, gdn32_multiplier=gdn32),
+                      provenance="frozen CP<=16 response transfer; 32-GPU topology/CP32 hypothetical when used; analytic CP1/storage/routes")
     options = SearchOptions(beam=beam, layouts=layouts, max_states=max_states,
         node_affinity=True, homogeneous_packing=True, balanced_packing=True,
         heavy_tail_packing=True, max_attention_cp=cap)
@@ -73,13 +82,18 @@ def main():
     parser.add_argument("--beam", type=int, default=32)
     parser.add_argument("--layouts", type=int, default=12)
     parser.add_argument("--max-states", type=int, default=4000000)
+    parser.add_argument("--hardware", choices=("H800", "H100"), default="H800")
     args = parser.parse_args()
+    if args.hardware == "H100" and any(SCENARIOS[s][1] is not None for s in args.scenarios):
+        parser.error("H100 uses measured CP32; specify --scenarios 16gpu, 32gpu_measured or 32gpu_cp16_only")
+    if args.hardware != "H100" and "32gpu_measured" in args.scenarios:
+        parser.error("32gpu_measured requires --hardware H100")
     args.output.mkdir(parents=True, exist_ok=False)
     summary=[]
     for case in args.cases:
         folder=args.output/case;folder.mkdir()
         for scenario in args.scenarios:
-            values,result,analysis,row=run(case,scenario,args.beam,args.layouts,args.max_states)
+            values,result,analysis,row=run(case,scenario,args.beam,args.layouts,args.max_states,args.hardware)
             for name,data in (("input.json",dict(lengths=values,input_tokens=sum(values),grouping_constraint=False)),
                               (scenario+"_result.json",result),(scenario+"_analysis.json",analysis),
                               (scenario+"_model.json",result["model"])):

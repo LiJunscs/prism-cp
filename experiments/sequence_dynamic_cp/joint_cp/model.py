@@ -1,7 +1,8 @@
 """Explicit provisional cost and whole-F/B storage model, with no token cap.
 
-These are analytic engineering estimates, NOT hardware measurements. Predicted
-feasibility is not GPU admission. Profile assumptions travel with every result.
+Analytic engineering estimates can be combined with hardware-scoped operator
+measurements. Predicted feasibility is not GPU admission. Profile assumptions
+travel with every result.
 All times are milliseconds and represent forward + backward unless noted.
 """
 
@@ -10,7 +11,7 @@ from functools import lru_cache
 import math
 
 from .ir import identity_route, route
-from .response import Response, validate_response
+from .response import Response, operator_work, validate_response
 
 
 @dataclass(frozen=True)
@@ -149,7 +150,7 @@ class Evaluator:
             ms = self.response.cost(symbol, cp, (flops-quadratic)/rate, quadratic/rate,
                                     communication/(bandwidth*1e6)+latency,
                                     communication/(m.intra_gbps*1e6)+latency,
-                                    sum(lengths), squares)
+                                    sum(lengths), squares, cross_node=cross)
             times.append(ms)
             for rank in group.ranks:
                 saved[rank], workspace[rank] = save, work
@@ -211,3 +212,17 @@ def execution_contract(model):
                 kv_channels=model.head_dim, linear_num_key_heads=model.gdn_heads,
                 linear_num_value_heads=model.gdn_heads, linear_key_head_dim=model.gdn_dim,
                 linear_value_head_dim=model.gdn_dim, linear_conv_kernel_dim=4)
+
+
+def resource_metrics(lengths, world, pattern, model, predicted_ms):
+    """Whole allocated world, including idle ranks; useful work is plan invariant."""
+    tokens, squares = sum(lengths.values()), sum(n*n for n in lengths.values())
+    flops = sum(operator_work(model, symbol, tokens, squares) for symbol in pattern)
+    flops += len(pattern) * operator_work(model, "M", tokens, squares)
+    flops += 6 * tokens * model.hidden * model.vocab
+    gpu_ms = world * predicted_ms
+    return dict(allocated_gpus=world, predicted_gpu_ms=gpu_ms,
+                declared_useful_flops=flops, predicted_useful_tflops_per_gpu=flops/(gpu_ms*1e9),
+                status="modeled_not_measured",
+                flop_scope="Existing GQA projection/causal attention, GDN projection/recurrence, MLP and output GEMM formulas; no inflated CP communication/redundant FLOPs",
+                mfu=None, mfu_note="No unverified hardware peak assumed; fixed-work same-hardware MFU ratios equal inverse GPU-time ratios")

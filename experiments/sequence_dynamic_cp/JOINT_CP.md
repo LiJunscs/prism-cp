@@ -28,7 +28,32 @@ R 包含对应算子的有效 CP 响应，已计入通信不重复叠加。MLP �
 
 `memory_selection.py` 对等长、平衡、rank 归属不变的 CP1 短批有限重打包，允许预测整步时间增加至多 0.1%，优先降低峰值；exact 保持原目标。568 条的低显存收益已 GPU 验证，1136 条修复仅有 CPU 推导。
 
-H800 快照为 `configs/joint_16gpu_measured.json`，部分响应仍是迁移先验。`response.py` 读取冻结节点内 fit 与跨机 CP8/16 配对，不能根据最终调度收益反调系数。CP1、GDN head 数迁移、GDN CP16/packed 响应、overlap 和争用仍有误差；H100 应建立独立配置。
+H800 快照为 `configs/joint_16gpu_measured.json`，部分响应仍是迁移先验；原始数据与系数保持不变。其 `response.py` 分支读取冻结节点内 fit 与跨机 CP8/16 配对，不能根据最终调度收益反调系数。
+
+H100 使用独立的 `configs/joint_16gpu_h100.json`（CP8/16）与 `joint_32gpu_h100.json`（另含实测 CP32），由 `build_h100_cp_profile.py` 从模块实测生成。令 L₀=262144，h 为 hidden、d 为 head_dim、D 为 GDN heads×head_dim；沿用现有有效 F+B FLOP 口径：
+
+```text
+W_GQA(S,Q) = 6[h(q_heads+2*kv_heads)d+h²]S + 6*q_heads*d*Q
+W_GDN(S,Q) = 6[6hD+4*gdn_heads*gdn_dim²]S
+T_o(S,Q,p) = A_o,p * W_o(S,Q)/W_o(L₀,L₀²)
+C_o,p = W_o(L₀,L₀²)/(p*A_o,p)   # 有效工作量 / GPU·ms
+T_o(S,Q,p) = W_o(S,Q)/(p*C_o,p)
+```
+
+|算子|A₈，ms|A₁₆，ms|A₃₂，ms|C₁₆/C₈|C₃₂/C₁₆|
+|---|---:|---:|---:|---:|---:|
+|GQA|463.346039|305.552673|221.343719|75.82098%|69.02221%|
+|GDN chunkwise|26.383841|14.369376|10.643056|91.80580%|67.50588%|
+
+CP8 系数取两个节点各自 rank-max 迭代中位数的中位数，CP16 取跨节点 rank-max 迭代中位数；两个节点的原始值仍单列保留。CP8 聚合是统一节点模型，不等于并行执行两组时实际测得的全 rank 最大值。GDN 的 CP8→16 效率保持率优于 GQA，但两者均低于 100%。单长度观测不能分别拟合线性、平方和固定开销，以上工作量缩放是显式假设。
+
+CP32 GQA 取首轮 3 次计量中位数；GDN 首轮波动明显，经预声明 7 次复核后合并全部 10 次取中位数，不删慢步。CP16 旧锚点不变；复核的两个 CP16 组为 14.129312/14.235648ms，单列作敏感性依据。CP8→16 的 GDN 优势不能外推到 CP16→32：后一段两者效率均下降，按当前统计 GDN 略低。原始与合并统计见 `results/h100_module_cp32_analysis_20261016_r1/combined_analysis.json`。
+
+单条 256Ki 以外的长度和 packing 标为 shape extrapolation；节点内 CP1/2/4 使用 `A_o,p=A_o,8*8/p` 的未验证假设，不借用 H800。attention 上限随所选配置为 CP16 或 CP32，CP>32 拒绝。MLP、输出头、布局搬运、更新与显存仍为未校准解析项。模块锚点已含其 CP 通信，不再叠加一次解析通信成本；布局间搬运独立计费。
+
+调度仍联合选择组批、attention CP 与 MLP 放置，不按效率排序硬编码 GDN CP16/GQA CP8。每阶段取并行组最大时间，计入路由、共享训练项与完整显存；固定输入和分配 GPU 数 W 时最小化 `W*T_plan` 与最小化完整步时等价。输出 `resource_metrics` 包含所有分配卡的 GPU·ms、声明口径下预测的每卡 TFLOP/s，并将绝对 MFU 留空。跨卡数比较需比较 GPU·时间，不能只取较短步时。
+
+CPU 搜索入口：`joint_cp_search.py --hardware H100 --manifest <inputs.json> --output <新目录> --world 16 --pattern 'GGG*GGG*'`；world=32 自动选择新的 CP32 配置。也可显式传 `--model-profile <配置.json>`，二者互斥。大输入入口 `joint_cp_scale_search.py --hardware H100` 需显式指定 `--scenarios 16gpu`、`32gpu_measured` 或 `32gpu_cp16_only`；最后一个为同一 CP32 实测模型下禁用 attention CP32 的控制，完整训练与 packed 并发仍未实测。结果携带锚点来源、外推覆盖统计和 `gpu_admitted=false`，CPU 可行性不能替代实际训练准入。
 
 ## 显存与评价
 

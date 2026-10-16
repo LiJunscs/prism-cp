@@ -1,0 +1,74 @@
+{
+  "schema": "hardware_scoped_cp_evidence_v1",
+  "paths_relative_to": "experiments/sequence_dynamic_cp",
+  "selection_policy": "Use evidence matching hardware, workload, implementation and measured domain; preserve H800 and H100 separately; unmeasured H100 regimes remain uncalibrated.",
+  "hardware": {
+    "H800": {
+      "status": "preserved_historical_evidence",
+      "model_profile": "configs/joint_16gpu_measured.json",
+      "node_local_raw": "../../bench_data/cp_response_observations.csv",
+      "cross_node_raw": "results/cross_node_cp_evidence_20261012/raw_rank_measurements.csv",
+      "cross_node_paired": "results/cross_node_cp_evidence_20261012/paired_response.csv",
+      "preserve_original_tables": true,
+      "limitations": [
+        "Historical GDN has 32 heads and unrecorded CP implementation; historical GDN CP16 is unmeasured"
+      ]
+    },
+    "H100": {
+      "status": "solver_profile_with_measured_anchors_and_explicit_extrapolations",
+      "model_profile": "configs/joint_16gpu_h100.json",
+      "profile_builder": "build_h100_cp_profile.py",
+      "cpu_validation": "results/h100_model_validation_20261016_r1/model_validation.json",
+      "raw_directory": "results/h100_module_cp_20261016_r1",
+      "protocol": "results/h100_module_cp_20261016_r1/protocol.json",
+      "analysis": "results/h100_module_cp_analysis_20261016_r1/analysis.json",
+      "timing_csv": "results/h100_module_cp_analysis_20261016_r1/analysis.csv",
+      "efficiency_csv": "results/h100_module_cp_analysis_20261016_r1/efficiency_comparison.csv",
+      "domain": {
+        "lengths": [
+          262144
+        ],
+        "batch": 1,
+        "cp": [
+          8,
+          16,
+          32
+        ],
+        "hidden": 4096,
+        "dtype": "BF16",
+        "gqa": {
+          "q_heads": 32,
+          "kv_heads": 8,
+          "head_dim": 128,
+          "layout": "THD causal zigzag",
+          "backend": "TE p2p"
+        },
+        "gdn": {
+          "heads": 16,
+          "head_dim": 128,
+          "conv_kernel": 4,
+          "cp_mode": "chunkwise",
+          "layout": "THD contiguous"
+        }
+      },
+      "time_scope": "Full attention module F+B including CP communication; excludes MLP, optimizer, parameter gradient reduction and cross-layout conversion",
+      "runtime_model_status": "Solver-loadable partial calibration: separate GQA/GDN CP8/16/32 anchors; GDN32 pools all ten values; whole-plan predictions remain unvalidated",
+      "fallback_policy": "No H800 substitution: explicit useful-work shape scaling and constant CP8 per-GPU efficiency for CP1/2/4; selected profile bounds measured CP (16 or 32); MLP/head/routes/update/memory analytic and uncalibrated",
+      "preserve_original_records": true,
+      "model_profiles_by_world": {
+        "16": "configs/joint_16gpu_h100.json",
+        "32": "configs/joint_32gpu_h100.json"
+      },
+      "cp32_raw_directory": "results/h100_module_cp32_20261016_r1",
+      "cp32_gdn_recheck_directory": "results/h100_module_cp32_gdn_recheck_20261016_r1",
+      "cp32_analysis": "results/h100_module_cp32_analysis_20261016_r1/combined_analysis.json"
+    }
+  },
+  "evaluation": {
+    "primary": "per_gpu_effective_TFLOPs_or_MFU",
+    "same_work_same_hardware_ratio": "(p_old*T_old)/(p_new*T_new)",
+    "latency_only": "secondary metric; not resource-normalized performance gain",
+    "whole_plan": "Use all allocated GPUs and full useful input work; include idle time and online planning/switching",
+    "absolute_MFU": "Requires declared useful-FLOP accounting and matching per-GPU peak; no invented absolute MFU"
+  }
+}

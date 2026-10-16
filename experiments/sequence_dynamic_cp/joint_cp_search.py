@@ -32,7 +32,9 @@ def main():
     parser.add_argument("--gqa-response-only", action="store_true", help="Do not transfer historical 32-head GDN response")
     parser.add_argument("--cp32-response", choices=("work_scaling", "carry_residual", "double_residual"), help="Explicit unmeasured CP32 hypothesis")
     parser.add_argument("--gdn32-multiplier", type=float, default=1., help="Unmeasured CP32 GDN stress factor, >=1")
-    parser.add_argument("--model-profile", type=Path, help="JSON overrides for the explicitly provisional analytic model")
+    profile = parser.add_mutually_exclusive_group()
+    profile.add_argument("--model-profile", type=Path, help="JSON overrides for the explicitly provisional analytic model")
+    profile.add_argument("--hardware", choices=("H800", "H100"), help="Explicit hardware profile; H100 anchors plus labeled extrapolations, H800 preserved legacy profile")
     parser.add_argument("--beam", type=int, default=8)
     parser.add_argument("--layouts", type=int, default=8)
     parser.add_argument("--max-states", type=int, default=1000000)
@@ -40,7 +42,12 @@ def main():
     args = parser.parse_args()
     manifest = json.loads(args.manifest.read_text())
     validate_manifest(manifest)
-    model = Model(**(json.loads(args.model_profile.read_text()) if args.model_profile else {}))
+    profile_path = args.model_profile
+    if args.hardware:
+        filename = (f"joint_{32 if args.world > 16 else 16}gpu_h100.json"
+                    if args.hardware == "H100" else "joint_16gpu_measured.json")
+        profile_path = Path(__file__).resolve().parent / "configs" / filename
+    model = Model(**(json.loads(profile_path.read_text()) if profile_path else {}))
     if args.cp_response:
         if model.cp_response is not None:
             parser.error("Choose either a response embedded in --model-profile or --cp-response")
@@ -60,6 +67,7 @@ def main():
     except SearchLimit as error:
         result = dict(status="search_budget_exhausted", plan=None, reason=str(error), gpu_admitted=False)
     result.update(model=asdict(model), search_options=asdict(options),
+                  model_profile=str(profile_path.resolve()) if profile_path else None,
                   input_manifest=str(args.manifest.resolve()), input_tokens=sum(lengths.values()))
     (args.output / "result.json").write_text(json.dumps(result, indent=2) + "\n")
     if result["plan"] is not None:
@@ -70,6 +78,7 @@ def main():
         (args.output / "executor.json").write_text(json.dumps(config, indent=2) + "\n")
         print(json.dumps(dict(status=result["status"], microbatches=len(result["plan"]["microbatches"]),
             ingress_allocation_tokens=replay[0]["capacity_tokens"], predicted_update_ms=result["predicted_update_ms"],
+            resource_metrics=result["resource_metrics"],
             gpu_admitted=False)))
     else:
         print(json.dumps(dict(status=result["status"], gpu_admitted=False)))

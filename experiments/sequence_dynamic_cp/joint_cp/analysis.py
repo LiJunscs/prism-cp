@@ -4,7 +4,7 @@ from collections import Counter
 import math
 
 from .ir import Plan, validate_plan
-from .model import Evaluator
+from .model import Evaluator, resource_metrics
 
 
 def describe(result, lengths, model):
@@ -40,6 +40,7 @@ def describe(result, lengths, model):
     if not math.isclose(sum(costs.values()), predicted, rel_tol=1e-10, abs_tol=1e-8):
         raise AssertionError("Stage breakdown does not match the complete plan score")
     return dict(status=result["status"], predicted_update_ms=predicted,
+        resource_metrics=resource_metrics(lengths, plan.world, plan.pattern, model, predicted),
         microbatches=len(batches), changed_cp_microbatches=sum(b["changes_cp"] for b in batches),
         peak_gib=max(max(e["peak_bytes"]) for e in result["microbatch_evidence"]) / 1024**3,
         stage_costs=costs, batches=batches, state_budget_exhausted=result["state_budget_exhausted"],

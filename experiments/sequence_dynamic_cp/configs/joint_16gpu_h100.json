@@ -1,0 +1,67 @@
+{
+  "hidden": 4096,
+  "ffn": 16384,
+  "vocab": 32768,
+  "q_heads": 32,
+  "kv_heads": 8,
+  "head_dim": 128,
+  "gdn_heads": 16,
+  "gdn_dim": 128,
+  "device_bytes": 85017493504,
+  "external_bytes": 7516192768,
+  "margin_bytes": 2147483648,
+  "static_bytes": null,
+  "compute_tflops": 300.0,
+  "intra_gbps": 300.0,
+  "inter_gbps": 25.0,
+  "memory_gbps": 1500.0,
+  "ranks_per_node": 8,
+  "latency_ms": 0.01,
+  "microbatch_ms": 0.1,
+  "update_ms": 1.0,
+  "provenance": "H100 measured 256Ki module anchors only; node-median aggregation; all other lengths/packing and CP1/2/4 extrapolated; MLP/head/routes/update/memory remain explicit engineering assumptions, not H800 measurements",
+  "cp_response": {
+    "schema": "h100_operator_anchors_v1",
+    "name": "h100_256ki_operator_anchors",
+    "hardware": "H100",
+    "anchor_tokens": 262144,
+    "anchors": {
+      "GQA": {
+        "milliseconds": {
+          "8": 463.3460388183594,
+          "16": 305.55267333984375
+        },
+        "cp8_node_medians_ms": [
+          458.9574279785156,
+          467.7346496582031
+        ],
+        "cp8_to_cp16_per_gpu_efficiency_ratio": 0.7582097609452326
+      },
+      "GDN": {
+        "milliseconds": {
+          "8": 26.383840560913086,
+          "16": 14.369376182556152
+        },
+        "cp8_node_medians_ms": [
+          25.944032669067383,
+          26.82364845275879
+        ],
+        "cp8_to_cp16_per_gpu_efficiency_ratio": 0.9180579666687971
+      }
+    },
+    "source": "results/h100_module_cp_analysis_20261016_r1/analysis.json",
+    "aggregation": "CP8: median of the two node-wise rankmax iteration medians; CP16: rankmax iteration median",
+    "shape_policy": "useful_work_scaling_unvalidated",
+    "unmeasured_cp_policy": "constant_cp8_per_gpu_efficiency",
+    "formula": "T_operator(S,Q,p) = measured_T_operator(L0,p) * useful_work(S,Q)/useful_work(L0,L0^2); CP1/2/4 use T8*8/p",
+    "measured_domain": "B1, 256Ki, CP8 node-local or CP16 two-node; H4096 Q32/KV8/D128 GDN16x128/conv4; BF16 THD; GQA TE p2p zigzag, GDN chunkwise contiguous",
+    "accounting": "Full module F+B anchors already include operator communication; no second communication charge; MLP and layout traffic remain separate",
+    "limitations": [
+      "Single-length calibration cannot identify separate linear, quadratic and fixed overhead coefficients",
+      "Useful-work shape scaling and CP1/2/4 are unvalidated extrapolations; CP>16 unsupported",
+      "MLP/head throughput and intra/inter-link bandwidths are uncalibrated analytic assumptions",
+      "Memory envelope is structural; external 7GiB and margin 2GiB are assumptions, not admission measurements",
+      "Specific FLA subkernel dispatch was not directly logged"
+    ]
+  }
+}
